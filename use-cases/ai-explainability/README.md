@@ -48,8 +48,8 @@ ai-explainability/
 
 ### Runnable sample
 
-The upstream WP3 repository does not publish a serialized model, so the thin
-use case includes a reproducible preparation script. It downloads the
+The upstream repository does not publish a serialized model, so the thin
+use case includes a reproducible preparation script for testing. It downloads the
 upstream energy CSV, trains a small Random Forest, and writes ignored assets.
 Use the dedicated virtual environment, whose dependencies pin NumPy below 2:
 
@@ -69,16 +69,6 @@ the request is outside its supported model types. Choose **I know what I want,
 proceed to next step** to bypass the assistant and configure the analysis
 manually.
 
-Request feedback stays visible on both setup screens. While the assistant checks
-a request, the button shows a loading indicator and the status explains that
-analysis has not started. Longer waits, follow-up questions, and errors are
-shown in the same status area.
-
-Model-type guidance is hidden by default and appears when the assistant needs
-clarification about an unidentified model type. It is hidden again once the
-request is supported. Users who are unsure can reply "I don't know" for guidance on checking
-the training code or asking the model provider; the assistant does not guess
-the model type from a file extension.
 
 General conversational requests use the local Ollama `qwen2.5:1.5b` LLM with
 deterministic sampling, followed by capability validation. Explicit short model
@@ -95,8 +85,7 @@ results after file replacement or reset. Alternatively, mount files in `assets/`
 to that directory. The runner accepts files only from `/assets` or its
 controlled `/data/uploads/` directory.
 
-The configuration starts empty rather than showing unrelated sample model paths
-and feature names. The assistant supplies the model type; selecting files fills
+The configuration starts empty. The assistant supplies the model type; selecting files fills
 paths but does not guess the algorithm. After a successful upload, missing
 `analysis` and `model_type` fields appear as empty strings for the user to fill
 in. Existing values are preserved. File notes show safe metadata inspection:
@@ -117,19 +106,14 @@ omitted, LSTM uses positional labels, and ARIMA uses supplied names only to
 select exogenous coefficients for its plots. All inputs still need to match the
 model's training feature order and dimensions.
 
-Upload notes use a blue information panel, or an amber attention panel when
-the model type is missing or feature inspection is unavailable. Text labels
-identify the state as well as color.
+
 Each inspected file has a separate entry with its upload role, filename, and
 dimensions. Tensor dimensions are labeled as samples, time steps, and features;
 identical feature-name guidance is shown once instead of repeated per file.
 CSV, Markdown, and JSON artifact previews use the task that produced each file,
 just like downloads, including workflows with an assistant step before analysis.
-Routine field guidance is collapsed under keyboard- and touch-accessible
-**Help** controls. Successful file inspection details are also collapsed by
-default; missing model types and inspection warnings remain visible.
-**Reset** clears selected uploads, configuration, and displayed results without
-leaving setup. Use **Back to request** to return to the configuration assistant.
+
+
 Model-specific uploads follow `model_type` in the configuration, including
 manual edits: test tensors appear only for LSTM; background data appears for
 LSTM and feedforward neural models. These fields are hidden while the model is
@@ -191,13 +175,10 @@ and so on); supplied names must match the tensor's feature count. An optional
 3. Run `./start.sh` from this directory.
 4. Run `./generate-export.sh` to create `export.zip`.
 5. Open `http://localhost:18204`, describe the analysis (or skip to manual
-  setup), select or upload the required files, review the JSON configuration,
-  and start the workflow. Uploaded files replace matching paths in the
-  configuration.
+  setup), and follow instructions.
 
 The orchestrator reaches `explainability-config-assistant` and `explainability-runner` over the
-shared `ai-effect-services` Docker network on port 8080. Host ports 18201 and
-18202 are available only for debugging. Docker Compose pulls the configured
+shared `ai-effect-services` Docker network on port 8080. Docker Compose pulls the configured
 `qwen2.5:1.5b` Ollama model on its first run.
 
 The runner image includes XGBoost, statsmodels, the ARIMA HTML parser, and CPU
@@ -220,7 +201,7 @@ not covered by the assistant's contract.
 
 Run `services/explainability_runner/test_model_compatibility.py` in the runner
 environment with the use-case root on `PYTHONPATH` alongside its toolbox and
-adapter. From this directory, validate without touching the live services:
+adapter. From this directory, validate without touching the live services: Tests are running on separate ports.
 
 ```bash
 docker run --rm --network none \
@@ -255,12 +236,12 @@ directories and remove their generated files.
   **Solutions → Import ZIP**, and upload `export.zip`.
 4. Open the imported solution in the portal to view and run the pipeline.
 
-### Deploy and Test
+### Deploy and Test: Instructions repeats what is already available in the orchestrator and platform tutorials
 
 The tutorial deployment runs the service and orchestrator locally and exposes
 the orchestrator to the portal with ngrok. Put model and data files under
-`assets/` and use asset-relative paths in the analysis configuration; files
-uploaded through the local web UI are not available to a portal deployment.
+`assets/` and use asset-relative paths in the analysis configuration; 
+**files uploaded through the local web UI are not available to a portal deployment for now**.
 
 1. Create the shared network once, then start the orchestrator:
 
