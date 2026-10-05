@@ -1,0 +1,17 @@
+# Generated sample assets created by scripts/prepare-sample.py.
+assets/data/raw_energy.csv
+assets/data/energy_data.csv
+assets/models/energy_model.joblib
+sample-config.json
+.venv-sample/
+
+# Local Python build and test artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/

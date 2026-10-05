@@ -1,0 +1,23 @@
+{
+  "pipeline": {
+    "name": "AI Explainability Analysis",
+    "service_mapping": {
+      "config_assistant": {
+        "ip_address": "explainability-config-assistant",
+        "port": 8080
+      },
+      "explainability_runner": {
+        "ip_address": "explainability-runner",
+        "port": 8080
+      }
+    },
+    "connections": [
+      {
+        "from_service": "config_assistant",
+        "from_method": "ConfigureAnalysis",
+        "to_service": "explainability_runner",
+        "to_method": "Explain"
+      }
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ description }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="/static/vendor/bootstrap-5.3.3.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css?v=5">
+    <script src="/static/app.js?v=8" defer></script>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg app-navbar">
+      <div class="container-xxl">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <span class="brand-mark">X</span>
+          <span>AI Explainability </span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+          <div class="pipeline-status" id="pipelineBadge"></div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container-xxl app-shell py-4 py-lg-5">
+      <header class="workspace-heading mb-4">
+        <div>
+          <div class="eyebrow">LIVE RUN</div>
+          <h1 id="pageTitle">{{ title }}</h1>
+          <p id="pageDescription">{{ description }}</p>
+        </div>
+        <div class="heading-note">
+          <span class="pulse-dot"></span>
+          <span id="activityLabel">Loading</span>
+        </div>
+      </header>
+
+      <section class="workspace-grid">
+        <aside class="input-rail">
+          <div class="rail-heading">
+            <div>
+              <span class="section-kicker">INPUTS</span>
+              <h2>Run</h2>
+            </div>
+          </div>
+          <p class="rail-intro">Describe what you want explained, or skip straight to the analysis settings.</p>
+          <section id="assistantStep" aria-labelledby="assistantTitle" hidden>
+            <form id="assistantForm">
+              <div class="field">
+                <label class="form-label" id="assistantTitle" for="assistantPrompt">What would you like explained?</label>
+                <textarea class="form-control" id="assistantPrompt" rows="4" placeholder="For example: Explain my random forest predictions using a tabular dataset." required></textarea>
+                <div class="hint mt-2" id="modelTypeHint" hidden>
+                  Model type means the algorithm used to train your model:
+                  Random Forest, XGBoost, or a feedforward neural network (MLP)
+                  for tabular data; LSTM or ARIMA for time-series data.
+                  For example, reply "LSTM time-series".
+                  If unsure, reply "I don't know" and check the training code or
+                  ask whoever supplied the model. A file extension alone does not identify the model type.
+                </div>
+              </div>
+              <div class="form-actions assistant-actions d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" id="assistantSubmitBtn" type="submit">Check my request</button>
+                <button class="btn btn-outline-secondary" id="skipAssistantBtn" type="button">I know what I want</button>
+              </div>
+            </form>
+            <div class="assistant-conversation" id="assistantConversation" aria-live="polite"></div>
+            <button class="btn btn-primary mt-3" id="assistantContinueBtn" type="button" hidden>Continue to setup</button>
+          </section>
+          <form id="workflowForm">
+            <div id="fields"></div>
+            <div class="hint file-setup-feedback mb-3" id="fileSetupFeedback" role="status" aria-live="polite" hidden></div>
+            <div class="form-actions d-flex flex-wrap gap-2 align-items-center">
+              <button class="btn btn-primary" id="submitBtn" type="submit"></button>
+              <button class="btn btn-outline-secondary" id="backToAssistantBtn" type="button" hidden>Back to request</button>
+              <button class="btn btn-outline-secondary" id="resetBtn" type="button">Reset</button>
+            </div>
+          </form>
+          <div class="alert alert-secondary mt-3 mb-0" id="status" role="status" aria-live="polite" aria-atomic="true">Loading workflow UI...</div>
+        </aside>
+
+        <section class="results-stage">
+          <div class="results-header">
+            <div>
+              <span class="section-kicker">OUTPUT</span>
+              <h2 id="outputTitle">Workflow output</h2>
+            </div>
+            <div id="actions" class="d-flex flex-wrap gap-2" hidden></div>
+          </div>
+          <div id="timeline" class="list-group workflow-timeline mb-3"></div>
+          <div id="output" class="vstack gap-3">
+            <div class="empty-state">
+              <div class="empty-icon">+</div>
+              <strong>No result yet.</strong>
+              <span>Start a run to see the explanation.</span>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

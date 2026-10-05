@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package explainability_runner;
+
+service ExplainabilityRunner {
+  rpc Explain(ExplainRequest) returns (ExplainResponse);
+}
+
+message ExplainRequest {
+  string analysis = 1;
+  string model_type = 2;
+  string model_path = 3;
+  string dataset_path = 4;
+  repeated string feature_names = 5;
+}
+
+message ExplainResponse {
+  string summary_path = 1;
+  repeated string artifacts = 2;
+  string status = 3;
+}
