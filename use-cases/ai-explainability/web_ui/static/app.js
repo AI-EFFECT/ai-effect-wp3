@@ -51,7 +51,9 @@ function fieldHtml(field) {
   const required = field.required ? 'required' : '';
   const placeholder = field.placeholder ? `placeholder="${escapeHtml(field.placeholder)}"` : '';
   const value = field.default ?? '';
-  const hint = field.help ? `<div class="hint">${escapeHtml(field.help)}</div>` : '';
+  const hint = field.help
+    ? `<details class="field-help"><summary>Help<span class="visually-hidden"> for ${escapeHtml(field.label || field.name)}</span></summary><div class="hint">${escapeHtml(field.help)}</div></details>`
+    : '';
   const label = `<label class="form-label" for="field-${field.name}">${escapeHtml(field.label || field.name)}</label>`;
 
   let control = '';
@@ -122,6 +124,22 @@ function wireUploadControls() {
   }
 }
 
+function updateModelFields() {
+  const configElement = document.getElementById(`field-${manifest.upload_config_field || 'config_json'}`);
+  let config;
+  try {
+    config = JSON.parse(configElement?.value || '{}');
+  } catch {
+    return;
+  }
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return;
+  for (const field of manifest.inputs || []) {
+    if (!field.model_types) continue;
+    const container = document.getElementById(`field-${field.name}`)?.closest('.field');
+    if (container) container.hidden = !field.model_types.includes(config.model_type);
+  }
+}
+
 // Collect values from all input fields in the form
 function collectInputs() {
   const result = {};
@@ -160,6 +178,11 @@ function readAnalysisConfiguration() {
 
 function applyUploadedFiles() {
   const {config, configElement} = readAnalysisConfiguration();
+  if ([...selectedUploads.values()].some(state => state.path)) {
+    for (const key of ['analysis', 'model_type']) {
+      if (!Object.hasOwn(config, key)) config[key] = '';
+    }
+  }
   for (const [name, state] of selectedUploads) {
     const field = (manifest.inputs || []).find(item => item.name === name);
     if (state.path && field) config[field.config_field] = state.path;
@@ -179,17 +202,65 @@ function applyUploadedFiles() {
     suggestedFeatureSource = source;
   }
   configElement.value = JSON.stringify(config, null, 2);
-  const notes = [...selectedUploads.values()].map(state => state.note).filter(Boolean);
+  updateModelFields();
+  const notes = [...selectedUploads.entries()].filter(([, state]) => state.note);
   const needsAttention = (!config.model_type && selectedUploads.size > 0)
     || [...selectedUploads.values()].some(state => state.inspectionError || state.metadata?.kind === 'unavailable');
-  if (!config.model_type && selectedUploads.size) {
-    notes.push('Specify model_type in the configuration or use the assistant; file extensions do not identify the algorithm.');
+  const detailsWereOpen = fileSetupFeedbackEl.querySelector('details')?.open === true;
+  fileSetupFeedbackEl.replaceChildren();
+  const showModelHint = !config.model_type && selectedUploads.size > 0;
+  if (notes.length || showModelHint) {
+    const content = needsAttention ? fileSetupFeedbackEl : document.createElement('details');
+    const heading = document.createElement(needsAttention ? 'strong' : 'summary');
+    heading.textContent = needsAttention ? 'Attention:' : `File information: ${notes.length} inspected`;
+    content.append(heading);
+    if (!needsAttention) {
+      content.open = detailsWereOpen;
+      fileSetupFeedbackEl.append(content);
+    }
+    const list = document.createElement('ul');
+    list.className = 'file-feedback-list';
+    const guidance = new Set();
+    for (const [name, state] of notes) {
+      const field = (manifest.inputs || []).find(item => item.name === name);
+      const item = document.createElement('li');
+      const label = document.createElement('strong');
+      label.textContent = field?.label || field?.config_field || name;
+      const filename = document.createElement('span');
+      filename.className = 'file-feedback-name';
+      filename.textContent = state.file.name;
+      item.append(label, filename);
+      if (state.metadata?.shape) {
+        const shape = document.createElement('span');
+        shape.className = 'file-feedback-shape';
+        shape.textContent = state.metadata.kind === 'tensor' && state.metadata.shape.length === 3
+          ? `${state.metadata.shape[0]} samples / ${state.metadata.shape[1]} time steps / ${state.metadata.shape[2]} features`
+          : `Shape: (${state.metadata.shape.join(', ')})`;
+        item.append(shape);
+      }
+      if (state.inspectionError || state.metadata?.kind === 'unavailable') {
+        const warning = document.createElement('p');
+        warning.className = 'file-feedback-guidance';
+        warning.textContent = state.note;
+        item.append(warning);
+      } else {
+        guidance.add(state.note);
+      }
+      list.append(item);
+    }
+    if (notes.length) content.append(list);
+    if (showModelHint) {
+      guidance.add('Specify model_type in the configuration or use the assistant; file extensions do not identify the algorithm.');
+    }
+    for (const message of guidance) {
+      const paragraph = document.createElement('p');
+      paragraph.className = 'file-feedback-guidance';
+      paragraph.textContent = message;
+      content.append(paragraph);
+    }
   }
-  fileSetupFeedbackEl.textContent = notes.length
-    ? `${needsAttention ? 'Attention' : 'File information'}: ${notes.join(' ')}`
-    : '';
   fileSetupFeedbackEl.classList.toggle('file-setup-feedback-warning', needsAttention);
-  fileSetupFeedbackEl.hidden = !notes.length;
+  fileSetupFeedbackEl.hidden = !notes.length && !showModelHint;
 }
 
 async function ensureSelectedUpload(field) {
@@ -228,10 +299,10 @@ async function ensureSelectedUpload(field) {
           const metadata = await inspection.json();
           if (!inspection.ok) throw new Error(metadata.detail || 'Feature detection failed.');
           state.metadata = metadata;
-          state.note = `${file.name}: ${metadata.shape ? `Shape (${metadata.shape.join(', ')}). ` : ''}${metadata.message}`;
+          state.note = metadata.message;
         } catch (error) {
           state.inspectionError = true;
-          state.note = `${file.name}: ${error.message} The file remains uploaded; review features manually.`;
+          state.note = `${error.message} The file remains uploaded; review features manually.`;
         }
       }
       if (generation === uploadGeneration && selectedUploads.get(field.name) === state) {
@@ -420,6 +491,7 @@ function showConfigurationStep(config = null) {
     configElement.value = JSON.stringify(config, null, 2);
   }
   if (selectedUploads.size) applyUploadedFiles();
+  updateModelFields();
   assistantStepEl.hidden = true;
   formEl.hidden = false;
   backToAssistantBtn.hidden = !assistantEnabled;
@@ -515,7 +587,7 @@ function renderArtifacts(currentWorkflowId, payload, taskId) {
     const extension = path.split('.').pop().toLowerCase();
     const previewable = ['md', 'markdown', 'csv', 'json'].includes(extension);
     const preview = previewable
-      ? `<div class="artifact-preview" data-artifact-path="${escapeHtml(path)}"><span class="preview-loading">Loading...</span></div>`
+      ? `<div class="artifact-preview" data-artifact-path="${escapeHtml(path)}" data-artifact-url="${escapeHtml(artifactUrl(currentWorkflowId, taskId, path))}"><span class="preview-loading">Loading...</span></div>`
       : '';
     const filePath = [taskId, path].filter(Boolean).join('/');
     return `<li class="artifact-item"><div class="artifact-line"><span>${escapeHtml(path)}</span><a class="artifact-download" href="/workflows/${encodeURIComponent(currentWorkflowId)}/files/${filePath.split('/').map(encodeURIComponent).join('/')}" target="_blank" rel="noopener">Download</a></div>${preview}</li>`;
@@ -540,14 +612,14 @@ function renderCsvPreview(text) {
   return `<div class="table-responsive"><table class="table table-sm artifact-table"><thead><tr>${header.map(cell => `<th>${escapeHtml(cell)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>${text.trim().split(/\r?\n/).length > 21 ? '<small class="preview-note">Showing the first 20 rows.</small>' : ''}`;
 }
 
-async function loadArtifactPreviews(currentWorkflowId, taskId) {
+async function loadArtifactPreviews() {
   const previews = outputEl.querySelectorAll('.artifact-preview');
   await Promise.all([...previews].map(async preview => {
     const path = preview.dataset.artifactPath;
     const extension = path.split('.').pop().toLowerCase();
     try {
-      const response = await fetch(artifactUrl(currentWorkflowId, taskId, path));
-      if (!response.ok) throw new Error('Preview unavailable');
+      const response = await fetch(preview.dataset.artifactUrl);
+      if (!response.ok) throw new Error(`Preview request failed (HTTP ${response.status}).`);
       const text = await response.text();
       if (extension === 'md' || extension === 'markdown') {
         preview.innerHTML = `<div class="artifact-label">Report</div>${renderMarkdown(text)}`;
@@ -557,7 +629,7 @@ async function loadArtifactPreviews(currentWorkflowId, taskId) {
         preview.innerHTML = `<div class="artifact-label">JSON</div><pre>${escapeHtml(JSON.stringify(JSON.parse(text), null, 2))}</pre>`;
       }
     } catch (error) {
-      preview.innerHTML = '<span class="preview-empty">Preview unavailable. Use Download.</span>';
+      preview.innerHTML = `<span class="preview-empty">Preview unavailable: ${escapeHtml(error.message)} Use Download.</span>`;
     }
   }));
 }
@@ -590,7 +662,7 @@ function renderOutputs(statusData) {
       </div>
     </article>`;
   }).join('');
-  loadArtifactPreviews(statusData.workflow_id, outputs[0].task_id);
+  loadArtifactPreviews();
 }
 
 
@@ -709,6 +781,7 @@ function resetWorkflow() {
   fileSetupFeedbackEl.hidden = true;
   fileSetupFeedbackEl.textContent = '';
   formEl.reset();
+  updateModelFields();
   if (assistantFormEl) assistantFormEl.reset();
   fieldsEl.querySelectorAll('input[type="file"]').forEach(updateUploadState);
   setupConversation = [];
@@ -717,15 +790,15 @@ function resetWorkflow() {
   assistantConversationEl.replaceChildren();
   assistantContinueBtn.hidden = true;
   assistantPromptEl.placeholder = 'For example: Explain my random forest predictions using a tabular dataset.';
-  assistantStepEl.hidden = !assistantEnabled;
-  formEl.hidden = assistantEnabled;
-  backToAssistantBtn.hidden = true;
+  assistantStepEl.hidden = true;
+  formEl.hidden = false;
+  backToAssistantBtn.hidden = !assistantEnabled;
   workflowId = null;
   latestStatus = null;
   if (pollHandle) clearTimeout(pollHandle);
   timelineEl.innerHTML = '';
   outputEl.innerHTML = '<div class="empty-state">Run a workflow to see results here.</div>';
-  setStatus('Ready.');
+  setStatus('Uploads and configuration cleared.');
 }
 
 
@@ -742,6 +815,9 @@ function renderManifest() {
   backToAssistantBtn.hidden = true;
   fieldsEl.innerHTML = (manifest.inputs || []).map(fieldHtml).join('');
   wireUploadControls();
+  updateModelFields();
+  document.getElementById(`field-${manifest.upload_config_field || 'config_json'}`)
+    ?.addEventListener('input', updateModelFields);
   submitBtn.textContent = manifest.submit_label || 'Start workflow';
   pipelineBadge.textContent = `${(manifest.pipeline?.services || []).length} services`;
   renderActions();

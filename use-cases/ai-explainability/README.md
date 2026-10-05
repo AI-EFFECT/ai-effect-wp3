@@ -97,7 +97,9 @@ controlled `/data/uploads/` directory.
 
 The configuration starts empty rather than showing unrelated sample model paths
 and feature names. The assistant supplies the model type; selecting files fills
-paths but does not guess the algorithm. File notes show safe metadata inspection:
+paths but does not guess the algorithm. After a successful upload, missing
+`analysis` and `model_type` fields appear as empty strings for the user to fill
+in. Existing values are preserved. File notes show safe metadata inspection:
 
 - CSV/TSV headers are suggested as `feature_names` in their original order.
   Review them and remove target/ID columns not used as model inputs.
@@ -118,6 +120,20 @@ model's training feature order and dimensions.
 Upload notes use a blue information panel, or an amber attention panel when
 the model type is missing or feature inspection is unavailable. Text labels
 identify the state as well as color.
+Each inspected file has a separate entry with its upload role, filename, and
+dimensions. Tensor dimensions are labeled as samples, time steps, and features;
+identical feature-name guidance is shown once instead of repeated per file.
+CSV, Markdown, and JSON artifact previews use the task that produced each file,
+just like downloads, including workflows with an assistant step before analysis.
+Routine field guidance is collapsed under keyboard- and touch-accessible
+**Help** controls. Successful file inspection details are also collapsed by
+default; missing model types and inspection warnings remain visible.
+**Reset** clears selected uploads, configuration, and displayed results without
+leaving setup. Use **Back to request** to return to the configuration assistant.
+Model-specific uploads follow `model_type` in the configuration, including
+manual edits: test tensors appear only for LSTM; background data appears for
+LSTM and feedforward neural models. These fields are hidden while the model is
+unknown or unrelated. Existing selections and settings are retained when hidden.
 
 For example, when using mounted assets:
 

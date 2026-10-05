@@ -33,16 +33,18 @@
     },
     {
       "name": "background_data_upload",
-      "label": "LSTM background data",
+      "label": "Background data",
+      "model_types": ["lstm", "feedforward", "mlp", "neural_net"],
       "type": "file",
       "config_field": "background_data_path",
       "upload_category": "data",
-      "accept": ".pt,.pth,.bin",
-      "help": "Uploads on selection. LSTM tensor shape: (samples, look_back, features)."
+      "accept": ".csv,.tsv,.parquet,.pt,.pth,.bin",
+      "help": "Required for LSTM: a tensor of (samples, time steps, features). Optional for feedforward models: a table of baseline samples; otherwise the explainer selects them from the dataset."
     },
     {
       "name": "test_data_upload",
       "label": "LSTM test data",
+      "model_types": ["lstm"],
       "type": "file",
       "config_field": "test_data_path",
       "upload_category": "data",
