@@ -1,4 +1,4 @@
-# Danish Node — Configuration and Topology (AI-EFFECT WP3)
+# Danish Node — Configuration and Topology Generation
 
 Reference for one of the Danish Node use case on the AI-EFFECT
 orchestration platform ([`AI-EFFECT/ai-effect-wp3`](https://github.com/AI-EFFECT/ai-effect-wp3)).
@@ -11,6 +11,12 @@ renders this workflow from `ui.json`, submits workflows, and exposes the topolog
 confirmation step. Services can also be run without web UI
 
 ## Pipeline
+
+Run the UI regressions with:
+
+```bash
+node --test services/web_ui/tests/ui.test.cjs
+```
 
 ```
 config_assistant → topology_generator → draw_topology

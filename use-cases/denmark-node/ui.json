@@ -1,6 +1,6 @@
 {
   "id": "denmark-node",
-  "title": "Danish Node Topology Workflow",
+  "title": "Topology Generator Workflow",
   "description": "Submit an experiment request, follow the configured services, and review the generated SYSLAB topology output.",
   "submit_label": "Generate topology",
   "poll_interval_ms": 2000,
@@ -16,7 +16,7 @@
       "type": "textarea",
       "required": true,
       "placeholder": "Example: Use the CHP at 310-D as supply and feed the heat dumpload on 716-D.",
-      "help": "The request is sent as JSON input to the workflow DataSource."
+      "help": "Describe the equipment, connections, and operating conditions for your experiment."
     }
   ],
   "output": {
@@ -30,7 +30,7 @@
     {
       "name": "accepted",
       "label": "Confirm topology",
-      "style": "secondary"
+      "style": "primary"
     },
     {
       "name": "rejected",

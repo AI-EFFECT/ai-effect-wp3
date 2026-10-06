@@ -2,6 +2,8 @@ let manifest = null;
 let workflowId = null;
 let latestStatus = null;
 let pollHandle = null;
+let requestGeneration = 0;
+let submitting = false;
 
 const fieldsEl = document.getElementById('fields');
 const formEl = document.getElementById('workflowForm');
@@ -15,6 +17,7 @@ const outputTitle = document.getElementById('outputTitle');
 const pipelineBadge = document.getElementById('pipelineBadge');
 const pageTitle = document.getElementById('pageTitle');
 const pageDescription = document.getElementById('pageDescription');
+const activityLabelEl = document.getElementById('activityLabel');
 
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -31,7 +34,7 @@ function fieldHtml(field) {
   const required = field.required ? 'required' : '';
   const placeholder = field.placeholder ? `placeholder="${escapeHtml(field.placeholder)}"` : '';
   const value = field.default ?? '';
-  const hint = field.help ? `<div class="hint">${escapeHtml(field.help)}</div>` : '';
+  const hint = field.help ? `<details class="field-help"><summary>Help<span class="visually-hidden"> for ${escapeHtml(field.label || field.name)}</span></summary><div class="hint">${escapeHtml(field.help)}</div></details>` : '';
   const label = `<label class="form-label" for="field-${field.name}">${escapeHtml(field.label || field.name)}</label>`;
 
   let control = '';
@@ -69,10 +72,11 @@ function collectInputs() {
 }
 
 // Update the status message displayed to the user
-function setStatus(text, isError = false) {
+function setStatus(text, isError = false, activity = 'Ready') {
   statusEl.textContent = text;
   statusEl.classList.toggle('alert-secondary', !isError);
   statusEl.classList.toggle('alert-danger', isError);
+  activityLabelEl.textContent = isError ? 'Needs attention' : activity;
 }
 
 
@@ -138,6 +142,7 @@ function renderOutputs(statusData) {
   latestStatus = statusData;
   renderTimeline(statusData.tasks || []);
   outputTitle.textContent = manifest.output?.title || 'Workflow output';
+  actionsEl.hidden = statusData.status !== 'completed' || !(manifest.actions || []).length;
 
   const outputs = statusData.outputs || [];
   if (!outputs.length) {
@@ -153,7 +158,7 @@ function renderOutputs(statusData) {
       <h3 class="h5 card-title">${escapeHtml(output.service || output.task_id || 'Output')}</h3>
       ${summary ? `<p class="summary">${escapeHtml(summary)}</p>` : ''}
       ${images}
-      <pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre>
+      <details class="technical-details"><summary>Technical details</summary><pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre></details>
       </div>
     </article>`;
   }).join('');
@@ -199,66 +204,103 @@ function buttonClass(style) {
 async function recordDecision(action) {
   if (!workflowId) return;
 
-  const response = await fetch('/decision', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({workflow_id: workflowId, action, value: selectedValue()}),
-  });
-  const data = await response.json();
-  setStatus(data.message || data.status || 'Decision recorded.', !response.ok);
+  try {
+    const response = await fetch('/decision', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({workflow_id: workflowId, action, value: selectedValue()}),
+    });
+    const data = await response.json();
+    setStatus(data.detail || data.message || data.status || 'Decision recorded.', !response.ok);
+  } catch (error) {
+    setStatus(error.message || 'Could not record the decision.', true);
+  }
 }
 
 async function pollWorkflow() {
   if (!workflowId) return;
+  const generation = requestGeneration;
+  try {
+    const response = await fetch(`/workflows/${encodeURIComponent(workflowId)}`);
+    const data = await response.json();
+    if (generation !== requestGeneration) return;
+    if (!response.ok || data.status === 'failed') {
+      setStatus(data.error || data.detail || 'Workflow failed.', true);
+      renderOutputs(data);
+      return;
+    }
 
-  const response = await fetch(`/workflows/${encodeURIComponent(workflowId)}`);
-  const data = await response.json();
-  if (!response.ok || data.status === 'failed') {
-    setStatus(data.error || data.detail || 'Workflow failed.', true);
     renderOutputs(data);
-    return;
+    if (data.status === 'completed') {
+      setStatus('Workflow completed.');
+      return;
+    }
+    const activeTask = (data.tasks || []).find(task => ['running', 'in_progress'].includes(task.status));
+    setStatus(activeTask
+      ? `Running ${activeTask.service || activeTask.service_name || activeTask.task_id}...`
+      : 'Workflow processing. Waiting for the next service...', false, 'Running');
+    pollHandle = setTimeout(pollWorkflow, manifest.poll_interval_ms || 2000);
+  } catch (error) {
+    if (generation === requestGeneration) setStatus(error.message || 'Could not check workflow status.', true);
   }
-
-  renderOutputs(data);
-  if (data.status === 'completed') {
-    setStatus('Workflow completed.');
-    return;
-  }
-  pollHandle = setTimeout(pollWorkflow, manifest.poll_interval_ms || 2000);
 }
 
 
 // Submit the workflow with the collected input values and start polling for its status
 async function submitWorkflow(event) {
   event.preventDefault();
+  if (submitting) return;
+  const generation = ++requestGeneration;
   if (pollHandle) clearTimeout(pollHandle);
 
   submitBtn.disabled = true;
-  setStatus('Submitting workflow...');
+  submitting = true;
+  submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Submitting...';
+  formEl.setAttribute('aria-busy', 'true');
+  actionsEl.hidden = true;
+  setStatus('Submitting your experiment request...', false, 'Submitting');
   outputEl.innerHTML = '<div class="empty-state">Waiting for workflow output.</div>';
 
-  const response = await fetch('/submit', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({inputs: collectInputs()}),
-  });
-  const data = await response.json();
-  submitBtn.disabled = false;
+  try {
+    const response = await fetch('/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({inputs: collectInputs()}),
+    });
+    const data = await response.json();
+    if (generation !== requestGeneration) return;
 
-  if (!response.ok) {
-    setStatus(data.detail || 'Submission failed.', true);
-    return;
+    if (!response.ok) {
+      setStatus(data.detail || 'Submission failed.', true);
+      return;
+    }
+
+    workflowId = data.workflow_id;
+    if (!workflowId) throw new Error('The server did not return a workflow ID.');
+    setStatus(`Workflow started: ${workflowId}.`, false, 'Running');
+    renderOutputs(data);
+    pollWorkflow();
+  } catch (error) {
+    if (generation === requestGeneration) setStatus(error.message || 'Submission failed.', true);
+  } finally {
+    if (generation === requestGeneration) {
+      submitting = false;
+      submitBtn.disabled = false;
+      submitBtn.textContent = manifest.submit_label || 'Start workflow';
+      formEl.setAttribute('aria-busy', 'false');
+    }
   }
-
-  workflowId = data.workflow_id;
-  setStatus(`Workflow started: ${workflowId}.`);
-  renderOutputs(data);
-  pollWorkflow();
 }
 
 
 // Reset the workflow state and clear the UI elements
 function resetWorkflow() {
+  requestGeneration += 1;
+  submitting = false;
+  submitBtn.disabled = false;
+  submitBtn.textContent = manifest.submit_label || 'Start workflow';
+  formEl.setAttribute('aria-busy', 'false');
+  actionsEl.hidden = true;
   formEl.reset();
   workflowId = null;
   latestStatus = null;
@@ -279,6 +321,7 @@ function renderManifest() {
   submitBtn.textContent = manifest.submit_label || 'Start workflow';
   pipelineBadge.textContent = `${(manifest.pipeline?.services || []).length} services`;
   renderActions();
+  actionsEl.hidden = true;
   setStatus('Ready.');
 }
 

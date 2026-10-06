@@ -6,46 +6,51 @@
     <title>{{ title }}</title>
     <meta name="description" content="{{ description }}">
     <link href="/static/vendor/bootstrap-5.3.3.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="/static/styles.css">
-    <script src="/static/app.js" defer></script>
+    <link rel="stylesheet" href="/static/styles.css?v=2">
+    <script src="/static/app.js?v=2" defer></script>
   </head>
   <body>
-    <main class="container-xxl py-4 py-lg-5">
-      <header class="d-flex flex-column flex-lg-row justify-content-between align-items-start gap-3 mb-4">
-        <div class="page-heading">
+    <nav class="navbar app-navbar">
+      <div class="container-xxl">
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <span class="brand-mark">D</span><span>Danish Node</span>
+        </a>
+        <div class="pipeline-status" id="pipelineBadge"></div>
+      </div>
+    </nav>
+    <main class="container-xxl app-shell py-4 py-lg-5">
+      <header class="workspace-heading mb-4">
+        <div>
+          <div class="eyebrow">LIVE RUN</div>
           <h1 id="pageTitle">{{ title }}</h1>
-          <p class="lead" id="pageDescription">{{ description }}</p>
+          <p id="pageDescription">{{ description }}</p>
         </div>
-        <div class="badge text-bg-light border rounded-pill px-3 py-2" id="pipelineBadge"></div>
+        <div class="heading-note"><span class="pulse-dot"></span><span id="activityLabel">Loading</span></div>
       </header>
 
-      <section class="row g-4 align-items-start">
-        <div class="col-12 col-lg-5 col-xl-4">
-          <form class="card workflow-panel" id="workflowForm">
-            <div class="card-body">
-              <h2 class="h4 mb-3">Inputs</h2>
+      <section class="workspace-grid">
+        <aside class="input-rail">
+          <div class="rail-heading"><div><span class="section-kicker">INPUTS</span><h2>Run</h2></div></div>
+          <form id="workflowForm">
               <div id="fields"></div>
-              <div class="d-flex flex-wrap gap-2 align-items-center">
+              <div class="form-actions d-flex flex-wrap gap-2 align-items-center">
                 <button class="btn btn-primary" id="submitBtn" type="submit"></button>
                 <button class="btn btn-outline-secondary" id="resetBtn" type="button">Reset</button>
               </div>
-              <div class="alert alert-secondary mt-3 mb-0" id="status" role="status">Loading workflow UI...</div>
-            </div>
           </form>
-        </div>
+          <div class="alert alert-secondary mt-3 mb-0" id="status" role="status" aria-live="polite" aria-atomic="true">Loading workflow UI...</div>
+        </aside>
 
-        <div class="col-12 col-lg-7 col-xl-8">
-          <section class="card workflow-panel">
-            <div class="card-body">
-              <h2 class="h4 mb-3" id="outputTitle">Workflow output</h2>
-              <div id="actions" class="d-flex flex-wrap gap-2 mb-3" hidden></div>
-              <div id="timeline" class="list-group list-group-flush workflow-timeline mb-3"></div>
-              <div id="output" class="vstack gap-3">
-                <div class="empty-state">Run a workflow to see results here.</div>
-              </div>
+          <section class="results-stage">
+            <div class="results-header">
+              <div><span class="section-kicker">OUTPUT</span><h2 id="outputTitle">Workflow output</h2></div>
+              <div id="actions" class="d-flex flex-wrap gap-2" hidden></div>
             </div>
+              <div id="timeline" class="list-group workflow-timeline mb-3"></div>
+              <div id="output" class="vstack gap-3">
+                <div class="empty-state"><strong>No result yet.</strong><span>Start a run to see the topology.</span></div>
+              </div>
           </section>
-        </div>
       </section>
     </main>
   </body>
