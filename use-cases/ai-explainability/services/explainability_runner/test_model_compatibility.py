@@ -1,9 +1,11 @@
 """Real file-based analyses after assistant validation, using tiny local models."""
 
 import json
+import base64
 import pickle
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 from itertools import product
 from pathlib import Path
 
@@ -18,7 +20,7 @@ from ai_explainability.capabilities import EXCEL_MODELS, MODEL_ROUTES
 from analysis.tabular import _load_explainer_class as load_tabular
 from analysis.timeseries import _load_explainer_class as load_timeseries
 from analysis.timeseries.lstm_pytorch import LSTMForecaster
-from service import UPLOAD_DIR, _prepare_config
+from service import ExecuteRequest, UPLOAD_DIR, _inspect_configuration, _prepare_config, _run_explanation
 from services.config_assistant.service import _prepare_input
 
 
@@ -46,7 +48,64 @@ class ModelCompatibilityTests(unittest.TestCase):
         self.assertEqual(prepared["status"], "ready")
         self.assertEqual(prepared["config"], config)
         actual = _prepare_config(prepared["config"], output)
-        return explain(**actual)
+        resolved, model, data, profile = _inspect_configuration(actual)
+        for key, value in actual.items():
+            self.assertEqual(resolved[key], value)
+        self.assertIn("inferred", profile)
+        return explain(model=model, data=data, **resolved)
+
+    def test_introspection_fills_missing_features_and_preserves_user_settings(self):
+        model = RandomForestRegressor(n_estimators=3, random_state=7).fit(
+            self.data, np.column_stack([self.target, self.target * 2])
+        )
+        path = self.root / "model.pkl"
+        with path.open("wb") as handle:
+            pickle.dump(model, handle)
+        config = _prepare_config({
+            "analysis": "tabular",
+            "model_type": "random_forest",
+            "model_path": str(path),
+            "dataset_path": str(self.data_path),
+            "save_excel": False,
+            "target_index": [1],
+        }, self.root / "inspection")
+        resolved, loaded, data, profile = _inspect_configuration(config)
+        self.assertEqual(resolved["feature_names"], ["x0", "x1"])
+        self.assertEqual(resolved["target_index"], [1])
+        self.assertFalse(resolved["save_excel"])
+        self.assertEqual(profile["notes"]["n_outputs"], 2)
+        result = explain(model=loaded, data=data, **resolved)
+        self.assertEqual(set(result.shap_values), {1})
+
+    def test_workflow_publishes_inspection_and_resolved_settings(self):
+        model = RandomForestRegressor(n_estimators=3, random_state=7).fit(self.data, self.target)
+        path = self.root / "model.pkl"
+        with path.open("wb") as handle:
+            pickle.dump(model, handle)
+        config = {
+            "analysis": "tabular", "model_type": "random_forest",
+            "model_path": str(path), "dataset_path": str(self.data_path),
+            "save_excel": False,
+        }
+        request = ExecuteRequest(
+            method="Explain", workflow_id="test-inspection", task_id="explain",
+            inputs=[{
+                "protocol": "inline", "format": "json",
+                "uri": base64.b64encode(json.dumps(config).encode()).decode(),
+            }],
+        )
+        manager = Mock()
+        with patch("service.DATA_DIR", self.root):
+            _run_explanation(request.task_id, request, manager)
+        manager.fail_task.assert_not_called()
+        manager.complete_task.assert_called_once()
+        reference = manager.complete_task.call_args.args[1]
+        summary = json.loads(Path(reference["uri"]).read_text())
+        self.assertEqual(summary["resolved_config"]["feature_names"], ["x0", "x1"])
+        self.assertIn("model_inspection.json", summary["artifacts"])
+        inspection = json.loads((Path(summary["output_dir"]) / "model_inspection.json").read_text())
+        self.assertEqual(inspection["profile"], summary["model_inspection"])
+        self.assertEqual(inspection["resolved_config"], summary["resolved_config"])
 
     def assert_reports(self, folder, excel, notebook):
         self.assertEqual(bool(list(folder.glob("*.xlsx"))), excel)

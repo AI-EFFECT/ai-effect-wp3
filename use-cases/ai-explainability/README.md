@@ -131,10 +131,32 @@ For example, when using mounted assets:
 }
 ```
 
+Submit a manual configuration directly to the orchestrator with:
+
+```bash
+./submit-workflow.sh sample-config.json
+```
+
+The script resolves configured file paths against `assets/` and fills omitted
+required paths when exactly one matching asset is available: a model from
+`assets/models/`, a tabular dataset from `assets/data/`, and LSTM background/test
+tensors whose filenames contain `background`/`test`. If a role has zero or
+multiple matches, set that path explicitly in the configuration. It reports the
+workflow ID after submission; check the printed status URL separately for
+completion.
+
 The adapter writes all results to `/data/<workflow_id>/<task_id>/` on the shared
 Docker volume, returns `summary.json` as a file DataReference, and includes the
 artifact names in its output. Set `save_excel` or `generate_notebook` in the
 configuration to control optional reports.
+
+Before analysis, the runner loads the model using its existing backend and runs
+the upstream `inspect_model` and `resolve_config` APIs. Model/data metadata fills
+missing settings; explicit user configuration takes precedence. LSTM window and
+feature dimensions come from the test tensor when omitted. The resolved settings
+and inspection profile are saved in `model_inspection.json` and included in the
+workflow output's technical details. Inspection happens during execution, not
+during upload: the upload metadata endpoint still does not deserialize models.
 
 The assistant reads the same lightweight
 [capability contract](services/explainability_runner/toolbox/ai_explainability/capabilities.py)

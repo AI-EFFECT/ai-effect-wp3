@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import sys
+from importlib import import_module
 from pathlib import Path
 from pickle import UnpicklingError
 from typing import Any
@@ -21,8 +22,9 @@ from fastapi import HTTPException
 from pydantic import BaseModel
 
 # importing explain from the AI Explainability toolbox
-from ai_explainability import explain
-from ai_explainability.capabilities import EXCEL_MODELS
+from ai_explainability import explain, inspect_model, resolve_config
+from ai_explainability.capabilities import EXCEL_MODELS, MODEL_ROUTES
+from ai_explainability.io import to_pandas
 from common.concurrent import (
     ExecuteRequest,
     ExecuteResponse,
@@ -134,6 +136,35 @@ def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
 
 
+def _inspect_configuration(config: dict[str, Any]) -> tuple[dict[str, Any], Any, Any, dict[str, Any]]:
+    config = dict(config)
+    if config["model_type"] == "lstm":
+        metadata = _inspect_data(config["test_data_path"])
+        config.setdefault("input_dim", metadata["shape"][-1])
+        config.setdefault("look_back", metadata["shape"][1])
+        config.setdefault("feature_names", metadata["feature_names"])
+    route = MODEL_ROUTES.get(config["analysis"], {}).get(config["model_type"])
+    if route is None:
+        raise ValueError(f"Unsupported {config['analysis']} model_type: {config['model_type']}")
+    module_name, class_name = route
+    explainer = getattr(import_module(module_name), class_name)(config)
+    explainer.load_model()
+    data = to_pandas(config["dataset_path"]) if config["analysis"] == "tabular" else None
+    profile = inspect_model(explainer.model, data, analysis=config["analysis"])
+    answers = dict(config)
+    if config.get("framework") and not config.get("package"):
+        answers["package"] = config["framework"]
+    if config["model_type"] == "arima":
+        # Coefficient analysis does not require named exogenous features.
+        answers.setdefault("feature_names", [])
+        profile.missing = [field for field in profile.missing if field.key != "feature_names"]
+    resolved = resolve_config(profile, answers)
+    inspection = profile.to_dict()
+    for warning in inspection["warnings"]:
+        logger.warning("Model inspection: %s", warning)
+    return resolved, explainer.model, data, inspection
+
+
 def _write_report(path: Path, result: Any, config: dict[str, Any]) -> str:
     feature_names = list(getattr(result, "feature_names", []) or config.get("feature_names", []))
     shap_values = getattr(result, "shap_values", {})
@@ -239,9 +270,14 @@ def _run_explanation(task_id: str, request: ExecuteRequest, manager: TaskManager
         submitted_config = _resolve_input(request.inputs)
         submitted_config.update(request.parameters)
         config = _prepare_config(submitted_config, result_dir)
+        config, model, data, inspection = _inspect_configuration(config)
+        _write_json(result_dir / "model_inspection.json", {
+            "profile": inspection,
+            "resolved_config": config,
+        })
         manager.update_progress(task_id, 15)
 
-        result = explain(**config)
+        result = explain(model=model, data=data, **config)
         manager.update_progress(task_id, 80)
 
         explanation_csv = None
@@ -274,6 +310,8 @@ def _run_explanation(task_id: str, request: ExecuteRequest, manager: TaskManager
             "report_markdown": report_markdown,
             "artifacts": artifacts,
             "drawings": drawings,
+            "model_inspection": inspection,
+            "resolved_config": config,
         }
         summary_path = result_dir / "summary.json"
         _write_json(summary_path, summary)
