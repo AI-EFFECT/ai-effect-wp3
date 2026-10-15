@@ -1,0 +1,14 @@
+{
+    "docker_info_list": [
+        {
+            "container_name": "config_assistant1",
+            "ip_address": "explainability-config-assistant",
+            "port": "8080"
+        },
+        {
+            "container_name": "explainability_runner1",
+            "ip_address": "explainability-runner",
+            "port": "8080"
+        }
+    ]
+}
