@@ -36,7 +36,7 @@ def graph():
         for key in ("first:Process", "second:Process")})
 
 
-@pytest.mark.parametrize("mutation", ["unknown", "protocol", "version", "identity", "missing-default", "extra", "null", "ambiguous"])
+@pytest.mark.parametrize("mutation", ["unknown", "protocol", "version", "identity", "missing-default", "extra", "null", "ambiguous", "malformed-transports", "malformed-operations"])
 def test_unsupported_wrapper_never_dispatches(httpx_mock, mutation):
     conf, cap = configuration(), deepcopy(CAPABILITY)
     if mutation == "unknown": cap = {}
@@ -47,6 +47,8 @@ def test_unsupported_wrapper_never_dispatches(httpx_mock, mutation):
     if mutation == "extra": conf["parameters"]["path"] = "/tmp"
     if mutation == "null": conf["parameters"] = None
     if mutation == "ambiguous": cap["operations"] *= 2
+    if mutation == "malformed-transports": cap["transports"] = "http-parameters-v1"
+    if mutation == "malformed-operations": cap["operations"] = {}
     # Malformed envelopes fail before even probing the wrapper.
     if mutation != "null": httpx_mock.add_response(method="GET", url="http://fixture/control/capabilities", json=cap)
     with pytest.raises((ControlClientError, ValueError)):

@@ -100,7 +100,9 @@ def match_wrapper_configuration(method, configuration, capability):
     """Generic protocol negotiation; no Dutch/Danish definitions live here."""
     configuration = validate_configuration_envelope(configuration)
     if (not isinstance(capability, dict) or capability.get("capability_schema_version") != CAPABILITY_SCHEMA
-            or TRANSPORT not in capability.get("transports", [])):
+            or not isinstance(capability.get("transports"), list)
+            or TRANSPORT not in capability["transports"]
+            or not isinstance(capability.get("operations"), list)):
         raise ValueError("Wrapper does not declare a supported configuration protocol")
     matches = [op for op in capability.get("operations", []) if isinstance(op, dict)
                and op.get("operation_name") == method
