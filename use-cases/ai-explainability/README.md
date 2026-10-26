@@ -6,6 +6,10 @@ into validated analysis settings before the explainability runner executes. The 
 time-series model predictions and produces audit artifacts such as a flattened
 CSV, optional Excel workbook, and optional notebook report.
 
+The upstream source is the [DTU GitLab interpretability service](https://git.elektro.dtu.dk/ai-effect/services/interpretability-service).
+The runner currently builds from the vendored copy; upstream changes are not
+automatically fetched or deployed.
+
 Author, maintainer, and MIT license information are available in
 `services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO`.
 
@@ -62,6 +66,9 @@ python3 -m venv .venv-sample
 Then use the generated files in the web UI, or paste the contents of
 `sample-config.json` into the configuration field. Completed runs return a
 Markdown feature-influence report and links to generated artifacts.
+The status list and result cards label the workflow steps as **Configuration
+validation** and **Explainability analysis**. Task IDs remain available under
+**Technical details**, and JSON payloads under **Raw output**.
 
 Describe the requested analysis on the first screen. The assistant will confirm
 a supported setup, ask one short follow-up question, or explain briefly that
@@ -283,6 +290,13 @@ the orchestrator to the portal with ngrok. Put model and data files under
   ./start.sh
   docker compose ps
   ```
+
+  The local web UI connects to `http://ai-effect-orchestrator:8000` over
+  `ai-effect-services`. The orchestrator API joins this network with the
+  `ai-effect-orchestrator` alias; its host port remains `18000` for external
+  clients. Recreate the API and web UI containers after changing these Compose
+  settings. This avoids relying on `host.docker.internal` for local submission.
+
 3. Configure ngrok once with `ngrok config add-authtoken YOUR_NGROK_TOKEN`,
   then run `ngrok http 18000`. Keep the tunnel running and copy its HTTPS URL.
 4. In the portal, open the imported solution and click **Edit**. Set the

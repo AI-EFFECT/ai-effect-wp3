@@ -508,6 +508,31 @@ function setStatus(text, isError = false, isBusy = false) {
 }
 
 
+function taskPresentation(task) {
+  const method = task.method || task.method_name || task.node_key?.split(':')[1] || '';
+  const labels = {
+    ConfigureAnalysis: {
+      title: 'Configuration validation',
+      description: 'Checks and prepares the analysis settings.',
+    },
+    Explain: {
+      title: 'Explainability analysis',
+      description: 'Generates explanations, plots, and downloadable reports.',
+    },
+  };
+  return labels[method] || {
+    title: method || task.service || task.service_name || 'Workflow task',
+    description: '',
+  };
+}
+
+function taskDetails(task) {
+  return `<details class="mt-2"><summary>Technical details</summary>
+    <div>Task ID: <code>${escapeHtml(task.task_id || '')}</code></div>
+    ${task.node_key ? `<div>Operation: <code>${escapeHtml(task.node_key)}</code></div>` : ''}
+  </details>`;
+}
+
 // Render the timeline of tasks for the workflow
 function renderTimeline(tasks) {
   if (!tasks?.length) {
@@ -518,8 +543,9 @@ function renderTimeline(tasks) {
   timelineEl.innerHTML = tasks.map(task => `
     <div class="list-group-item workflow-task">
       <div>
-        <strong>${escapeHtml(task.service || task.service_name || task.task_id || 'Task')}</strong>
-        <div class="form-text">${escapeHtml(task.method || task.method_name || '')}</div>
+        <strong>${escapeHtml(taskPresentation(task).title)}</strong>
+        <div class="form-text">${escapeHtml(taskPresentation(task).description)}</div>
+        ${taskDetails(task)}
       </div>
       <span class="badge rounded-pill text-bg-light border">${escapeHtml(task.status || 'pending')}</span>
     </div>
@@ -647,18 +673,20 @@ function renderOutputs(statusData) {
   }
 
   outputEl.innerHTML = outputs.map(output => {
+    const task = (statusData.tasks || []).find(task => task.task_id === output.task_id) || output;
     const summary = firstSummary(output.payload);
     const images = renderImages(statusData.workflow_id, output.payload);
     const report = renderMarkdown(output.payload.report_markdown);
     const artifacts = renderArtifacts(statusData.workflow_id, output.payload, output.task_id);
     return `<article class="card output-card">
       <div class="card-body">
-      <h3 class="h5 card-title">${escapeHtml(output.service || output.task_id || 'Output')}</h3>
+      <h3 class="h5 card-title">${escapeHtml(taskPresentation(task).title)}</h3>
       ${summary ? `<p class="summary">${escapeHtml(summary)}</p>` : ''}
       ${report}
       ${images}
       ${artifacts}
-      <pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre>
+      ${taskDetails(task)}
+      <details class="mt-2"><summary>Raw output</summary><pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre></details>
       </div>
     </article>`;
   }).join('');

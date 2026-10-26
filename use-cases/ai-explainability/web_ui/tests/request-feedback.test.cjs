@@ -89,6 +89,10 @@ async function setup(request, inputs = []) {
       context.artifactPayload = payload;
       return vm.runInContext('renderArtifacts("workflow", artifactPayload, "task")', context);
     },
+    renderOutputs: status => {
+      context.testStatus = status;
+      return vm.runInContext('renderOutputs(testStatus)', context);
+    },
     select: (field, file) => {
       element(`field-${field.name}`).files = file ? [file] : [];
       context.selectedField = field;
@@ -149,6 +153,41 @@ test('assistant output does not invent report downloads', async () => {
   const ui = await setup();
   assert.equal(ui.renderArtifacts({status: 'ready', config: {}}), '');
   assert.match(ui.renderArtifacts({artifacts: ['report.md']}), /report\.md/);
+});
+
+test('workflow steps use descriptive labels and keep IDs and raw output in collapsed details', async () => {
+  const ui = await setup();
+  ui.renderOutputs({
+    workflow_id: 'workflow',
+    tasks: [
+      {task_id: 'config-id', node_key: 'config_assistant1:ConfigureAnalysis', status: 'completed'},
+      {task_id: 'runner-id', node_key: 'explainability_runner1:Explain', status: 'completed'},
+    ],
+    outputs: [
+      {task_id: 'config-id', payload: {status: 'ready', config: {}}},
+      {task_id: 'runner-id', payload: {summary: 'Analysis completed.'}},
+    ],
+  });
+  for (const id of ['timeline', 'output']) {
+    const html = ui.element(id).innerHTML;
+    assert.match(html, />Configuration validation</);
+    assert.match(html, />Explainability analysis</);
+    assert.match(html, /<summary>Technical details<\/summary>\s*<div>Task ID: <code>config-id/);
+    assert.match(html, /Task ID: <code>runner-id/);
+    assert.doesNotMatch(html, /<(?:strong|h3)[^>]*>(?:config-id|runner-id)</);
+    assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+  }
+  assert.match(ui.element('output').innerHTML, /<summary>Raw output<\/summary><pre>/);
+});
+
+test('unrecognized workflow operations remain identifiable and HTML-escaped', async () => {
+  const ui = await setup();
+  ui.renderOutputs({
+    tasks: [{task_id: 'other', node_key: 'service:Custom<method>', status: 'running'}],
+    outputs: [{task_id: 'other', payload: {}}],
+  });
+  assert.match(ui.element('timeline').innerHTML, /Custom&lt;method&gt;/);
+  assert.match(ui.element('output').innerHTML, /Custom&lt;method&gt;/);
 });
 
 test('previews fetch each producing task rather than the first workflow task', async () => {

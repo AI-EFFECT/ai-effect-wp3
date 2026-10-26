@@ -82,7 +82,7 @@ services:
       - "18204:8080"
     environment:
       - DATA_DIR=/data
-      - ORCHESTRATOR_URL=http://host.docker.internal:18000
+      - ORCHESTRATOR_URL=http://ai-effect-orchestrator:8000
       - CONFIG_ASSISTANT_URL=http://explainability-config-assistant:8080/assistant/configure
       - USE_CASE_DIR=/workspace/use-cases/ai-explainability
     volumes:
