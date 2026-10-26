@@ -90,9 +90,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/SavvinaFil/AI-Explainability"
-Repository = "https://github.com/SavvinaFil/AI-Explainability"
-Issues = "https://github.com/SavvinaFil/AI-Explainability/issues"
+Homepage = "https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
+Repository = "https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
+Issues = "https://git.elektro.dtu.dk/ai-effect/services/interpretability-service/-/issues"
 
 # Expose the CLI entry point so `ai-explainability --config ...` works after install.
 # Points at the shim's lazy run() so heavy deps (shap, torch, …) are not imported

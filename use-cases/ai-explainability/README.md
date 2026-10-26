@@ -6,6 +6,10 @@ into validated analysis settings before the explainability runner executes. The 
 time-series model predictions and produces audit artifacts such as a flattened
 CSV, optional Excel workbook, and optional notebook report.
 
+The upstream source is the [DTU GitLab interpretability service](https://git.elektro.dtu.dk/ai-effect/services/interpretability-service).
+The runner currently builds from the vendored copy; upstream changes are not
+automatically fetched or deployed.
+
 Author, maintainer, and MIT license information are available in
 `services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO`.
 

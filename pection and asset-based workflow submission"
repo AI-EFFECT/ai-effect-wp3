@@ -1,0 +1,336 @@
+[1mdiff --git a/use-cases/ai-explainability/README.md b/use-cases/ai-explainability/README.md[m
+[1mindex 5b86673..39cce1b 100644[m
+[1m--- a/use-cases/ai-explainability/README.md[m
+[1m+++ b/use-cases/ai-explainability/README.md[m
+[36m@@ -131,11 +131,33 @@[m [mFor example, when using mounted assets:[m
+ }[m
+ ```[m
+ [m
+[32m+[m[32mSubmit a manual configuration directly to the orchestrator with:[m
+[32m+[m
+[32m+[m[32m```bash[m
+[32m+[m[32m./submit-workflow.sh sample-config.json[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32mThe script resolves configured file paths against `assets/` and fills omitted[m
+[32m+[m[32mrequired paths when exactly one matching asset is available: a model from[m
+[32m+[m[32m`assets/models/`, a tabular dataset from `assets/data/`, and LSTM background/test[m
+[32m+[m[32mtensors whose filenames contain `background`/`test`. If a role has zero or[m
+[32m+[m[32mmultiple matches, set that path explicitly in the configuration. It reports the[m
+[32m+[m[32mworkflow ID after submission; check the printed status URL separately for[m
+[32m+[m[32mcompletion.[m
+[32m+[m
+ The adapter writes all results to `/data/<workflow_id>/<task_id>/` on the shared[m
+ Docker volume, returns `summary.json` as a file DataReference, and includes the[m
+ artifact names in its output. Set `save_excel` or `generate_notebook` in the[m
+ configuration to control optional reports.[m
+ [m
+[32m+[m[32mBefore analysis, the runner loads the model using its existing backend and runs[m
+[32m+[m[32mthe upstream `inspect_model` and `resolve_config` APIs. Model/data metadata fills[m
+[32m+[m[32mmissing settings; explicit user configuration takes precedence. LSTM window and[m
+[32m+[m[32mfeature dimensions come from the test tensor when omitted. The resolved settings[m
+[32m+[m[32mand inspection profile are saved in `model_inspection.json` and included in the[m
+[32m+[m[32mworkflow output's technical details. Inspection happens during execution, not[m
+[32m+[m[32mduring upload: the upload metadata endpoint still does not deserialize models.[m
+[32m+[m
+ The assistant reads the same lightweight[m
+ [capability contract](services/explainability_runner/toolbox/ai_explainability/capabilities.py)[m
+ as the explainer's model routers and neural/LSTM backend selectors. It preserves[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/service.py b/use-cases/ai-explainability/services/explainability_runner/service.py[m
+[1mindex c04ac7c..35aa0f5 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/service.py[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/service.py[m
+[36m@@ -7,6 +7,7 @@[m [mimport json[m
+ import logging[m
+ import os[m
+ import sys[m
+[32m+[m[32mfrom importlib import import_module[m
+ from pathlib import Path[m
+ from pickle import UnpicklingError[m
+ from typing import Any[m
+[36m@@ -21,8 +22,9 @@[m [mfrom fastapi import HTTPException[m
+ from pydantic import BaseModel[m
+ [m
+ # importing explain from the AI Explainability toolbox[m
+[31m-from ai_explainability import explain[m
+[31m-from ai_explainability.capabilities import EXCEL_MODELS[m
+[32m+[m[32mfrom ai_explainability import explain, inspect_model, resolve_config[m
+[32m+[m[32mfrom ai_explainability.capabilities import EXCEL_MODELS, MODEL_ROUTES[m
+[32m+[m[32mfrom ai_explainability.io import to_pandas[m
+ from common.concurrent import ([m
+     ExecuteRequest,[m
+     ExecuteResponse,[m
+[36m@@ -134,6 +136,35 @@[m [mdef _write_json(path: Path, payload: dict[str, Any]) -> None:[m
+     path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")[m
+ [m
+ [m
+[32m+[m[32mdef _inspect_configuration(config: dict[str, Any]) -> tuple[dict[str, Any], Any, Any, dict[str, Any]]:[m
+[32m+[m[32m    config = dict(config)[m
+[32m+[m[32m    if config["model_type"] == "lstm":[m
+[32m+[m[32m        metadata = _inspect_data(config["test_data_path"])[m
+[32m+[m[32m        config.setdefault("input_dim", metadata["shape"][-1])[m
+[32m+[m[32m        config.setdefault("look_back", metadata["shape"][1])[m
+[32m+[m[32m        config.setdefault("feature_names", metadata["feature_names"])[m
+[32m+[m[32m    route = MODEL_ROUTES.get(config["analysis"], {}).get(config["model_type"])[m
+[32m+[m[32m    if route is None:[m
+[32m+[m[32m        raise ValueError(f"Unsupported {config['analysis']} model_type: {config['model_type']}")[m
+[32m+[m[32m    module_name, class_name = route[m
+[32m+[m[32m    explainer = getattr(import_module(module_name), class_name)(config)[m
+[32m+[m[32m    explainer.load_model()[m
+[32m+[m[32m    data = to_pandas(config["dataset_path"]) if config["analysis"] == "tabular" else None[m
+[32m+[m[32m    profile = inspect_model(explainer.model, data, analysis=config["analysis"])[m
+[32m+[m[32m    answers = dict(config)[m
+[32m+[m[32m    if config.get("framework") and not config.get("package"):[m
+[32m+[m[32m        answers["package"] = config["framework"][m
+[32m+[m[32m    if config["model_type"] == "arima":[m
+[32m+[m[32m        # Coefficient analysis does not require named exogenous features.[m
+[32m+[m[32m        answers.setdefault("feature_names", [])[m
+[32m+[m[32m        profile.missing = [field for field in profile.missing if field.key != "feature_names"][m
+[32m+[m[32m    resolved = resolve_config(profile, answers)[m
+[32m+[m[32m    inspection = profile.to_dict()[m
+[32m+[m[32m    for warning in inspection["warnings"]:[m
+[32m+[m[32m        logger.warning("Model inspection: %s", warning)[m
+[32m+[m[32m    return resolved, explainer.model, data, inspection[m
+[32m+[m
+[32m+[m
+ def _write_report(path: Path, result: Any, config: dict[str, Any]) -> str:[m
+     feature_names = list(getattr(result, "feature_names", []) or config.get("feature_names", []))[m
+     shap_values = getattr(result, "shap_values", {})[m
+[36m@@ -239,9 +270,14 @@[m [mdef _run_explanation(task_id: str, request: ExecuteRequest, manager: TaskManager[m
+         submitted_config = _resolve_input(request.inputs)[m
+         submitted_config.update(request.parameters)[m
+         config = _prepare_config(submitted_config, result_dir)[m
+[32m+[m[32m        config, model, data, inspection = _inspect_configuration(config)[m
+[32m+[m[32m        _write_json(result_dir / "model_inspection.json", {[m
+[32m+[m[32m            "profile": inspection,[m
+[32m+[m[32m            "resolved_config": config,[m
+[32m+[m[32m        })[m
+         manager.update_progress(task_id, 15)[m
+ [m
+[31m-        result = explain(**config)[m
+[32m+[m[32m        result = explain(model=model, data=data, **config)[m
+         manager.update_progress(task_id, 80)[m
+ [m
+         explanation_csv = None[m
+[36m@@ -274,6 +310,8 @@[m [mdef _run_explanation(task_id: str, request: ExecuteRequest, manager: TaskManager[m
+             "report_markdown": report_markdown,[m
+             "artifacts": artifacts,[m
+             "drawings": drawings,[m
+[32m+[m[32m            "model_inspection": inspection,[m
+[32m+[m[32m            "resolved_config": config,[m
+         }[m
+         summary_path = result_dir / "summary.json"[m
+         _write_json(summary_path, summary)[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/test_model_compatibility.py b/use-cases/ai-explainability/services/explainability_runner/test_model_compatibility.py[m
+[1mindex 0e2d0d6..f697813 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/test_model_compatibility.py[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/test_model_compatibility.py[m
+[36m@@ -1,9 +1,11 @@[m
+ """Real file-based analyses after assistant validation, using tiny local models."""[m
+ [m
+ import json[m
+[32m+[m[32mimport base64[m
+ import pickle[m
+ import tempfile[m
+ import unittest[m
+[32m+[m[32mfrom unittest.mock import Mock, patch[m
+ from itertools import product[m
+ from pathlib import Path[m
+ [m
+[36m@@ -18,7 +20,7 @@[m [mfrom ai_explainability.capabilities import EXCEL_MODELS, MODEL_ROUTES[m
+ from analysis.tabular import _load_explainer_class as load_tabular[m
+ from analysis.timeseries import _load_explainer_class as load_timeseries[m
+ from analysis.timeseries.lstm_pytorch import LSTMForecaster[m
+[31m-from service import UPLOAD_DIR, _prepare_config[m
+[32m+[m[32mfrom service import ExecuteRequest, UPLOAD_DIR, _inspect_configuration, _prepare_config, _run_explanation[m
+ from services.config_assistant.service import _prepare_input[m
+ [m
+ [m
+[36m@@ -46,7 +48,64 @@[m [mclass ModelCompatibilityTests(unittest.TestCase):[m
+         self.assertEqual(prepared["status"], "ready")[m
+         self.assertEqual(prepared["config"], config)[m
+         actual = _prepare_config(prepared["config"], output)[m
+[31m-        return explain(**actual)[m
+[32m+[m[32m        resolved, model, data, profile = _inspect_configuration(actual)[m
+[32m+[m[32m        for key, value in actual.items():[m
+[32m+[m[32m            self.assertEqual(resolved[key], value)[m
+[32m+[m[32m        self.assertIn("inferred", profile)[m
+[32m+[m[32m        return explain(model=model, data=data, **resolved)[m
+[32m+[m
+[32m+[m[32m    def test_introspection_fills_missing_features_and_preserves_user_settings(self):[m
+[32m+[m[32m        model = RandomForestRegressor(n_estimators=3, random_state=7).fit([m
+[32m+[m[32m            self.data, np.column_stack([self.target, self.target * 2])[m
+[32m+[m[32m        )[m
+[32m+[m[32m        path = self.root / "model.pkl"[m
+[32m+[m[32m        with path.open("wb") as handle:[m
+[32m+[m[32m            pickle.dump(model, handle)[m
+[32m+[m[32m        config = _prepare_config({[m
+[32m+[m[32m            "analysis": "tabular",[m
+[32m+[m[32m            "model_type": "random_forest",[m
+[32m+[m[32m            "model_path": str(path),[m
+[32m+[m[32m            "dataset_path": str(self.data_path),[m
+[32m+[m[32m            "save_excel": False,[m
+[32m+[m[32m            "target_index": [1],[m
+[32m+[m[32m        }, self.root / "inspection")[m
+[32m+[m[32m        resolved, loaded, data, profile = _inspect_configuration(config)[m
+[32m+[m[32m        self.assertEqual(resolved["feature_names"], ["x0", "x1"])[m
+[32m+[m[32m        self.assertEqual(resolved["target_index"], [1])[m
+[32m+[m[32m        self.assertFalse(resolved["save_excel"])[m
+[32m+[m[32m        self.assertEqual(profile["notes"]["n_outputs"], 2)[m
+[32m+[m[32m        result = explain(model=loaded, data=data, **resolved)[m
+[32m+[m[32m        self.assertEqual(set(result.shap_values), {1})[m
+[32m+[m
+[32m+[m[32m    def test_workflow_publishes_inspection_and_resolved_settings(self):[m
+[32m+[m[32m        model = RandomForestRegressor(n_estimators=3, random_state=7).fit(self.data, self.target)[m
+[32m+[m[32m        path = self.root / "model.pkl"[m
+[32m+[m[32m        with path.open("wb") as handle:[m
+[32m+[m[32m            pickle.dump(model, handle)[m
+[32m+[m[32m        config = {[m
+[32m+[m[32m            "analysis": "tabular", "model_type": "random_forest",[m
+[32m+[m[32m            "model_path": str(path), "dataset_path": str(self.data_path),[m
+[32m+[m[32m            "save_excel": False,[m
+[32m+[m[32m        }[m
+[32m+[m[32m        request = ExecuteRequest([m
+[32m+[m[32m            method="Explain", workflow_id="test-inspection", task_id="explain",[m
+[32m+[m[32m            inputs=[{[m
+[32m+[m[32m                "protocol": "inline", "format": "json",[m
+[32m+[m[32m                "uri": base64.b64encode(json.dumps(config).encode()).decode(),[m
+[32m+[m[32m            }],[m
+[32m+[m[32m        )[m
+[32m+[m[32m        manager = Mock()[m
+[32m+[m[32m        with patch("service.DATA_DIR", self.root):[m
+[32m+[m[32m            _run_explanation(request.task_id, request, manager)[m
+[32m+[m[32m        manager.fail_task.assert_not_called()[m
+[32m+[m[32m        manager.complete_task.assert_called_once()[m
+[32m+[m[32m        reference = manager.complete_task.call_args.args[1][m
+[32m+[m[32m        summary = json.loads(Path(reference["uri"]).read_text())[m
+[32m+[m[32m        self.assertEqual(summary["resolved_config"]["feature_names"], ["x0", "x1"])[m
+[32m+[m[32m        self.assertIn("model_inspection.json", summary["artifacts"])[m
+[32m+[m[32m        inspection = json.loads((Path(summary["output_dir"]) / "model_inspection.json").read_text())[m
+[32m+[m[32m        self.assertEqual(inspection["profile"], summary["model_inspection"])[m
+[32m+[m[32m        self.assertEqual(inspection["resolved_config"], summary["resolved_config"])[m
+ [m
+     def assert_reports(self, folder, excel, notebook):[m
+         self.assertEqual(bool(list(folder.glob("*.xlsx"))), excel)[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/toolbox/README.md b/use-cases/ai-explainability/services/explainability_runner/toolbox/README.md[m
+[1mindex cd8bc25..d642bca 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/toolbox/README.md[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/toolbox/README.md[m
+[36m@@ -156,6 +156,21 @@[m [mresult.save_excel("out.xlsx") # opt-in, only if you want disk output[m
+ [m
+ `save_excel` and `generate_notebook` default to `False` and `output_dir` is not auto-created, so a call like the one above touches zero files. Full walkthrough including a Unity Catalog + Delta example is in [`docs/databricks.md`](./docs/databricks.md).[m
+ [m
+[32m+[m[32m### 5. Auto-configuration from a fitted model[m
+[32m+[m[32m`inspect_model` infers configuration fields from a fitted model and optional[m
+[32m+[m[32mlabelled data. Resolve the remaining user choices with `resolve_config` before[m
+[32m+[m[32mcalling `explain`:[m
+[32m+[m
+[32m+[m[32m```python[m
+[32m+[m[32mprofile = aie.inspect_model(model, df)[m
+[32m+[m[32mprint(profile.describe())[m
+[32m+[m[32mconfig = aie.resolve_config(profile, {"target_index": [0], "save_excel": False})[m
+[32m+[m[32mresult = aie.explain(model=model, data=df, **config)[m
+[32m+[m[32m```[m
+[32m+[m
+[32m+[m[32mThe profile exposes inferred values, missing form-field specifications,[m
+[32m+[m[32mwarnings, and notes as a JSON-compatible dictionary via `profile.to_dict()`.[m
+[32m+[m
+ #### Feedforward neural network (PyTorch or TensorFlow)[m
+ Pass a fitted MLP and pick the SHAP backend with `explainer_type` (`kernel`, `gradient`, or `deep`). The `package` key selects the framework (auto-detected if omitted):[m
+ [m
+[36m@@ -266,4 +281,3 @@[m [mThis toolbox is built upon the following foundational research and libraries:[m
+ [m
+ * **Explainability (SHAP):** S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," *Advances in Neural Information Processing Systems*, vol. 30, pp. 4765–4774, 2017. [Link to Paper](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html)[m
+ [m
+[31m-[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO b/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO[m
+[1mindex 4f950e3..dadd151 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability.egg-info/PKG-INFO[m
+[36m@@ -1,6 +1,6 @@[m
+ Metadata-Version: 2.4[m
+ Name: ai-explainability[m
+[31m-Version: 0.3.0[m
+[32m+[m[32mVersion: 0.4.0[m
+ Summary: A standardized, model-agnostic toolbox for AI explainability using SHAP, with a focus on energy-sector workflows.[m
+ Author-email: Bastien Giraud <bagir@dtu.dk>[m
+ Maintainer-email: Bastien Giraud <bagir@dtu.dk>[m
+[36m@@ -320,4 +320,3 @@[m [mThis toolbox is built upon the following foundational research and libraries:[m
+ [m
+ * **Explainability (SHAP):** S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," *Advances in Neural Information Processing Systems*, vol. 30, pp. 4765–4774, 2017. [Link to Paper](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html)[m
+ [m
+[31m-[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability/__init__.py b/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability/__init__.py[m
+[1mindex 940b962..41a4a3f 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability/__init__.py[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/toolbox/ai_explainability/__init__.py[m
+[36m@@ -21,13 +21,17 @@[m [mfrom __future__ import annotations[m
+ [m
+ from typing import Sequence[m
+ [m
+[31m-__version__ = "0.3.0"[m
+[32m+[m[32m__version__ = "0.4.0"[m
+ [m
+ __all__ = [[m
+     "__version__",[m
+     "run",[m
+     "explain",[m
+     "ExplanationResult",[m
+[32m+[m[32m    "inspect_model",[m
+[32m+[m[32m    "resolve_config",[m
+[32m+[m[32m    "ModelProfile",[m
+[32m+[m[32m    "FieldSpec",[m
+ ][m
+ [m
+ [m
+[36m@@ -71,6 +75,20 @@[m [mdef explain(*args, **kwargs):[m
+     return _explain(*args, **kwargs)[m
+ [m
+ [m
+[32m+[m[32mdef inspect_model(*args, **kwargs):[m
+[32m+[m[32m    """Forwarder to :func:`ai_explainability.introspect.inspect_model`."""[m
+[32m+[m[32m    from .introspect import inspect_model as _inspect_model[m
+[32m+[m
+[32m+[m[32m    return _inspect_model(*args, **kwargs)[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef resolve_config(*args, **kwargs):[m
+[32m+[m[32m    """Forwarder to :func:`ai_explainability.introspect.resolve_config`."""[m
+[32m+[m[32m    from .introspect import resolve_config as _resolve_config[m
+[32m+[m
+[32m+[m[32m    return _resolve_config(*args, **kwargs)[m
+[32m+[m
+[32m+[m
+ def __getattr__(name: str):[m
+     """Lazy attribute access for advanced users.[m
+ [m
+[36m@@ -97,4 +115,11 @@[m [mdef __getattr__(name: str):[m
+         globals()["ExplanationResult"] = _ER[m
+         return _ER[m
+ [m
+[32m+[m[32m    if name in {"ModelProfile", "FieldSpec"}:[m
+[32m+[m[32m        from . import introspect[m
+[32m+[m
+[32m+[m[32m        value = getattr(introspect, name)[m
+[32m+[m[32m        globals()[name] = value[m
+[32m+[m[32m        return value[m
+[32m+[m
+     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")[m
+[1mdiff --git a/use-cases/ai-explainability/services/explainability_runner/toolbox/pyproject.toml b/use-cases/ai-explainability/services/explainability_runner/toolbox/pyproject.toml[m
+[1mindex 7e172b3..9518bb9 100644[m
+[1m--- a/use-cases/ai-explainability/services/explainability_runner/toolbox/pyproject.toml[m
+[1m+++ b/use-cases/ai-explainability/services/explainability_runner/toolbox/pyproject.toml[m
+[36m@@ -4,7 +4,7 @@[m [mbuild-backend = "setuptools.build_meta"[m
+ [m
+ [project][m
+ name = "ai-explainability"[m
+[31m-version = "0.3.0"[m
+[32m+[m[32mversion = "0.4.0"[m
+ description = "A standardized, model-agnostic toolbox for AI explainability using SHAP, with a focus on energy-sector workflows."[m
+ readme = "README.md"[m
+ requires-python = ">=3.10"[m
+* Unmerged path use-cases/denmark-node/README.md
+* Unmerged path use-cases/denmark-node/services/web_ui/static/app.js
+* Unmerged path use-cases/denmark-node/services/web_ui/static/styles.css
+* Unmerged path use-cases/denmark-node/services/web_ui/templates/index.html
+* Unmerged path use-cases/denmark-node/ui.json
