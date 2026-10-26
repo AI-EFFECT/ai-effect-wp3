@@ -64,15 +64,21 @@ class Worker:
             inputs = list(task.input_refs) if task.input_refs else None
 
             # Execute service call
+            configuration = self._engine.get_instance_configuration(workflow_id, task.node_key)
             response = self._client.execute(
                 base_url=base_url,
                 method=method,
                 workflow_id=workflow_id,
                 task_id=task.task_id,
                 inputs=inputs,
+                **({"configuration": configuration} if isinstance(configuration, dict) else {}),
             )
 
             # Handle response
+            if response.status == "running" and (not isinstance(response.task_id, str) or not response.task_id.strip()):
+                raise WorkerError("Running service response omitted its external task identifier")
+            self._engine.record_service_task(workflow_id, task.task_id, task.node_key,
+                                            response.task_id if isinstance(response.task_id, str) else None)
             if response.status == "failed":
                 error = response.error or "Service returned failed status"
                 self._engine.fail_task(workflow_id, task.task_id, error)
@@ -99,6 +105,9 @@ class Worker:
             return True
         except WorkerError as e:
             self._engine.fail_task(workflow_id, task.task_id, str(e))
+            return True
+        except (ValueError, TypeError) as e:
+            self._engine.fail_task(workflow_id, task.task_id, f"Invalid submitted configuration: {e}")
             return True
 
     def run(self, workflow_id: str, timeout: float = 0) -> None:

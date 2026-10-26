@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class WorkflowSubmitRequest(BaseModel):
@@ -15,6 +15,7 @@ class WorkflowSubmitRequest(BaseModel):
     dockerinfo: dict
     inputs: list[dict] = []  # Initial DataReference objects for start nodes
     services_api_key: str | None = None  # Optional bearer token sent to services
+    task_configurations: dict[str, dict] = Field(default_factory=dict)
 
     @field_validator("blueprint")
     @classmethod

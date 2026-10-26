@@ -35,6 +35,8 @@ from services.blueprint_parser import BlueprintParseError, BlueprintParser
 from services.dockerinfo_parser import DockerInfoParseError, DockerInfoParser
 from services.state_store import WorkflowNotFoundError, TaskNotFoundError
 from services.workflow_engine import WorkflowEngine
+from services.configuration_readiness import check_configurations
+from services.control_client import ControlClientError
 
 
 class OrchestratorAPI:
@@ -70,6 +72,28 @@ class OrchestratorAPI:
             version="1.0.0",
         )
 
+        @app.get("/capabilities", dependencies=[Depends(_verify_orchestrator_key)])
+        def capabilities():
+            return {"capability_schema_version": "1.0", "transports": ["http-parameters-v1"],
+                    "parameter_validation": "wrapper-contract-v1", "runtime": "wp3-aie18-integration-v2"}
+
+        @app.post("/workflows/check-compatibility", dependencies=[Depends(_verify_orchestrator_key)])
+        def check_compatibility(request: WorkflowSubmitRequest):
+            try:
+                graph = self._blueprint_parser.parse_json(request.blueprint)
+                endpoints = self._dockerinfo_parser.parse_json(request.dockerinfo)
+                return check_configurations(graph, endpoints, request.task_configurations, request.services_api_key)
+            except (BlueprintParseError, DockerInfoParseError, ControlClientError, ValueError) as exc:
+                raise HTTPException(409, f"Configuration compatibility rejected: {exc}") from exc
+
+        @app.get("/workflows/{workflow_id}/instance-associations", dependencies=[Depends(_verify_orchestrator_key)])
+        def instance_associations(workflow_id: str):
+            try:
+                self._engine.get_workflow_status(workflow_id)
+            except WorkflowNotFoundError:
+                raise HTTPException(404, "Workflow not found")
+            return {"workflow_id": workflow_id, "associations": self._engine.get_instance_associations(workflow_id)}
+
         @app.post(
             "/workflows",
             response_model=WorkflowSubmitResponse,
@@ -89,6 +113,11 @@ class OrchestratorAPI:
                 endpoints = self._dockerinfo_parser.parse_json(request.dockerinfo)
             except DockerInfoParseError as e:
                 raise HTTPException(status_code=400, detail=f"Invalid dockerinfo: {e}")
+
+            try:
+                check_configurations(graph, endpoints, request.task_configurations, request.services_api_key)
+            except (ControlClientError, ValueError) as exc:
+                raise HTTPException(409, f"Configuration compatibility rejected: {exc}") from exc
 
             # Generate workflow ID
             workflow_id = f"wf-{uuid.uuid4().hex[:12]}"
@@ -118,6 +147,8 @@ class OrchestratorAPI:
 
             # Initialize and start workflow
             self._engine.initialize_workflow(workflow_id, graph)
+            if request.task_configurations:
+                self._engine.initialize_instance_configurations(workflow_id, request.task_configurations)
             self._engine.start_workflow(workflow_id, initial_inputs)
 
             return WorkflowSubmitResponse(workflow_id=workflow_id, status="running")

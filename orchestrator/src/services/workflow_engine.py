@@ -1,8 +1,9 @@
 """Workflow engine for orchestrating task execution."""
 
 import hashlib
+import json
 
-from redis import Redis
+from redis import Redis, WatchError
 
 from models.data_reference import DataReference
 from models.graph import ExecutionGraph, GraphNode
@@ -43,6 +44,41 @@ class WorkflowEngine:
     def _task_id_from_node_key(self, node_key: str) -> str:
         hash_val = hashlib.sha256(node_key.encode()).hexdigest()[:8]
         return f"task_{hash_val}"
+
+    def initialize_instance_configurations(self, workflow_id, configurations):
+        key = f"instance-configurations:{workflow_id}"
+        with self._redis.pipeline() as transaction:
+            try:
+                transaction.watch(key)
+                if transaction.exists(key):
+                    raise ValueError("Submitted instance configuration is immutable")
+                transaction.multi()
+                transaction.hset(key, mapping={name: json.dumps(value, allow_nan=False) for name, value in configurations.items()})
+                transaction.execute()
+            except WatchError as exc:
+                raise ValueError("Submitted instance configuration is immutable") from exc
+
+    def get_instance_configuration(self, workflow_id, node_key):
+        value = self._redis.hget(f"instance-configurations:{workflow_id}", node_key)
+        if value is None:
+            return None
+        from services.parameter_contract import validate_configuration_envelope
+        return validate_configuration_envelope(json.loads(value))
+
+    def record_service_task(self, workflow_id, task_id, node_key, service_task_id):
+        configuration = self.get_instance_configuration(workflow_id, node_key)
+        record = {"task_id": task_id, "node_key": node_key, "instance_id": configuration["instance_id"] if configuration else None,
+                  "service_task_id": service_task_id}
+        key, encoded = f"instance-associations:{workflow_id}", json.dumps(record, sort_keys=True)
+        if not self._redis.hsetnx(key, task_id, encoded):
+            previous = self._redis.hget(key, task_id)
+            if isinstance(previous, bytes):
+                previous = previous.decode()
+            if previous != encoded:
+                raise ValueError("Runtime/external task association is immutable")
+
+    def get_instance_associations(self, workflow_id):
+        return [json.loads(value) for value in self._redis.hvals(f"instance-associations:{workflow_id}")]
 
     def initialize_workflow(
         self,
