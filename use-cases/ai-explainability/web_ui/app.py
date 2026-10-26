@@ -367,7 +367,14 @@ def submit_workflow(payload: SubmitRequest) -> dict[str, Any]:
         "inputs": [{"protocol": "inline", "uri": payload_b64, "format": "json"}],
     }
 
-    response = requests.post(f"{ORCHESTRATOR_URL}/workflows", json=request_body, timeout=20)
+    try:
+        response = requests.post(f"{ORCHESTRATOR_URL}/workflows", json=request_body, timeout=20)
+    except requests.RequestException as exc:
+        logger.exception("Could not submit workflow to orchestrator at %s", ORCHESTRATOR_URL)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach the orchestrator. Check that it is running and the web UI's ORCHESTRATOR_URL is reachable.",
+        ) from exc
     if response.status_code >= 400:
         raise HTTPException(status_code=response.status_code, detail=response.text)
 
@@ -396,7 +403,14 @@ def record_decision(payload: DecisionRequest) -> dict[str, str | None]:
 
 @app.get("/workflows/{workflow_id}")
 def workflow_status(workflow_id: str) -> WorkflowStatusResponse:
-    response = requests.get(f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", timeout=20)
+    try:
+        response = requests.get(f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", timeout=20)
+    except requests.RequestException as exc:
+        logger.exception("Could not retrieve workflow status from orchestrator at %s", ORCHESTRATOR_URL)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach the orchestrator to check progress. Your workflow may still be running; retry the status check.",
+        ) from exc
     if response.status_code >= 400:
         raise HTTPException(status_code=response.status_code, detail=response.text)
 

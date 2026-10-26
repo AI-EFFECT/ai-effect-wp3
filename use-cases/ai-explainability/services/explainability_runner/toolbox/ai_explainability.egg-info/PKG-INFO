@@ -5,9 +5,9 @@ Summary: A standardized, model-agnostic toolbox for AI explainability using SHAP
 Author-email: Bastien Giraud <bagir@dtu.dk>
 Maintainer-email: Bastien Giraud <bagir@dtu.dk>
 License: MIT
-Project-URL: Homepage, https://github.com/SavvinaFil/AI-Explainability
-Project-URL: Repository, https://github.com/SavvinaFil/AI-Explainability
-Project-URL: Issues, https://github.com/SavvinaFil/AI-Explainability/issues
+Project-URL: Homepage, https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
+Project-URL: Repository, https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
+Project-URL: Issues, https://git.elektro.dtu.dk/ai-effect/services/interpretability-service/-/issues
 Keywords: shap,explainability,xai,machine-learning,energy,random-forest,lstm,arima
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Science/Research
@@ -79,23 +79,23 @@ In the energy sector, knowing *that* a model predicted a price spike or a solar 
 
 ## 🛠️ Installation & Setup
 
-The toolbox is packaged as a standard Python distribution, so it can be installed directly from GitHub with any PEP 517 compatible tool (`pip`, `uv`, Databricks `%pip`). Re-running the same install command is idempotent.
+The toolbox is packaged as a standard Python distribution, so it can be installed directly from DTU GitLab with any PEP 517 compatible tool (`pip`, `uv`, Databricks `%pip`). Re-running the same install command is idempotent.
 
-### Option 1 — Install directly from GitHub (Recommended)
+### Option 1 — Install directly from DTU GitLab (Recommended)
 
 ```bash
 # pip
-pip install git+https://github.com/SavvinaFil/AI-Explainability
+pip install git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
 
 # uv
-uv pip install git+https://github.com/SavvinaFil/AI-Explainability
+uv pip install git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
 ```
 
 ### Option 2 — Install on Databricks
 Run this in a notebook cell attached to your cluster; the `%pip` magic restarts the Python interpreter automatically once the install completes.
 
 ```python
-%pip install git+https://github.com/SavvinaFil/AI-Explainability
+%pip install git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
 ```
 
 ### Optional extras
@@ -103,24 +103,24 @@ Heavier or environment-specific dependencies are exposed as extras so you only p
 
 ```bash
 # PyTorch backend (needed for the LSTM explainer and PyTorch MLPs)
-pip install "ai-explainability[torch] @ git+https://github.com/SavvinaFil/AI-Explainability"
+pip install "ai-explainability[torch] @ git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
 
 # TensorFlow / Keras backend (for TensorFlow feedforward models)
-pip install "ai-explainability[tensorflow] @ git+https://github.com/SavvinaFil/AI-Explainability"
+pip install "ai-explainability[tensorflow] @ git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
 
 # gRPC server / client stack
-pip install "ai-explainability[grpc] @ git+https://github.com/SavvinaFil/AI-Explainability"
+pip install "ai-explainability[grpc] @ git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
 
 # Everything
-pip install "ai-explainability[all] @ git+https://github.com/SavvinaFil/AI-Explainability"
+pip install "ai-explainability[all] @ git+https://git.elektro.dtu.dk/ai-effect/services/interpretability-service"
 ```
 
 ### Option 3 — Local development environment (Conda)
 If you are working on the source, a Conda environment is still the easiest way to get the full pinned dependency set:
 
 ```bash
-git clone https://github.com/SavvinaFil/AI-Explainability
-cd AI-Explainability
+git clone https://git.elektro.dtu.dk/ai-effect/services/interpretability-service
+cd interpretability-service
 conda env create -f environment.yml
 conda activate shap_aie
 pip install -e .
@@ -319,4 +319,3 @@ For questions, bug reports, or collaboration inquiries, please reach out to the 
 This toolbox is built upon the following foundational research and libraries:
 
 * **Explainability (SHAP):** S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," *Advances in Neural Information Processing Systems*, vol. 30, pp. 4765–4774, 2017. [Link to Paper](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html)
-
