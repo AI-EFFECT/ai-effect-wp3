@@ -145,6 +145,11 @@ JSON output viewer. The Denmark manifest customizes that generic UI for topology
 generation by declaring the prompt field, SVG drawing collection, selected
 signature field, and confirm/reject actions.
 
+Workflow status rows, progress messages, and result cards use readable step
+names: **Configuration preparation**, **Topology generation**, and **Topology
+visualization**. Original task IDs and operation keys remain available under
+collapsed **Technical details**; identifiers used by the orchestrator are unchanged.
+
 **5. Onboard to the portal:** upload `export.zip` at
 [portal.renewenergy.io](https://portal.renewenergy.io) → **Solutions → Import ZIP**.
 

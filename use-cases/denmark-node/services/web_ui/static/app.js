@@ -80,6 +80,33 @@ function setStatus(text, isError = false, activity = 'Ready') {
 }
 
 
+function taskPresentation(task) {
+  const method = task.method || task.method_name || task.node_key?.split(':')[1] || '';
+  const labels = {
+    BuildRunConfig: {
+      title: 'Configuration preparation',
+      description: 'Turns the request into supply and load settings.',
+    },
+    GenerateTopology: {
+      title: 'Topology generation',
+      description: 'Generates feasible networks and recommends a topology.',
+    },
+    RenderTopologies: {
+      title: 'Topology visualization',
+      description: 'Draws the generated networks for review.',
+    },
+  };
+  return labels[method] || {
+    title: method || task.service || task.service_name || 'Workflow task',
+    description: '',
+  };
+}
+
+function taskIdentifiers(task) {
+  return `<div>Task ID: <code>${escapeHtml(task.task_id || '')}</code></div>
+    ${task.node_key ? `<div>Operation: <code>${escapeHtml(task.node_key)}</code></div>` : ''}`;
+}
+
 // Render the timeline of tasks for the workflow
 function renderTimeline(tasks) {
   if (!tasks?.length) {
@@ -90,8 +117,9 @@ function renderTimeline(tasks) {
   timelineEl.innerHTML = tasks.map(task => `
     <div class="list-group-item workflow-task">
       <div>
-        <strong>${escapeHtml(task.service || task.service_name || task.task_id || 'Task')}</strong>
-        <div class="form-text">${escapeHtml(task.method || task.method_name || '')}</div>
+        <strong>${escapeHtml(taskPresentation(task).title)}</strong>
+        <div class="form-text">${escapeHtml(taskPresentation(task).description)}</div>
+        <details class="technical-details"><summary>Technical details</summary>${taskIdentifiers(task)}</details>
       </div>
       <span class="badge rounded-pill text-bg-light border">${escapeHtml(task.status || 'pending')}</span>
     </div>
@@ -151,14 +179,15 @@ function renderOutputs(statusData) {
   }
 
   outputEl.innerHTML = outputs.map(output => {
+    const task = (statusData.tasks || []).find(task => task.task_id === output.task_id) || output;
     const summary = firstSummary(output.payload);
     const images = renderImages(statusData.workflow_id, output.payload);
     return `<article class="card output-card">
       <div class="card-body">
-      <h3 class="h5 card-title">${escapeHtml(output.service || output.task_id || 'Output')}</h3>
+      <h3 class="h5 card-title">${escapeHtml(taskPresentation(task).title)}</h3>
       ${summary ? `<p class="summary">${escapeHtml(summary)}</p>` : ''}
       ${images}
-      <details class="technical-details"><summary>Technical details</summary><pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre></details>
+      <details class="technical-details"><summary>Technical details</summary>${taskIdentifiers(task)}<pre>${escapeHtml(JSON.stringify(output.payload, null, 2))}</pre></details>
       </div>
     </article>`;
   }).join('');
@@ -237,7 +266,7 @@ async function pollWorkflow() {
     }
     const activeTask = (data.tasks || []).find(task => ['running', 'in_progress'].includes(task.status));
     setStatus(activeTask
-      ? `Running ${activeTask.service || activeTask.service_name || activeTask.task_id}...`
+      ? `Running ${taskPresentation(activeTask).title}...`
       : 'Workflow processing. Waiting for the next service...', false, 'Running');
     pollHandle = setTimeout(pollWorkflow, manifest.poll_interval_ms || 2000);
   } catch (error) {

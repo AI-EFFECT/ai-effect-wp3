@@ -56,6 +56,52 @@ test('network failure restores submit controls and displays the error', async ()
   assert.equal(ui.element('workflowForm').attributes['aria-busy'], 'false');
 });
 
+test('topology task labels are readable in the timeline and output cards', async () => {
+  const ui = await setup();
+  ui.run(`renderOutputs({
+    workflow_id: "wf", status: "completed",
+    tasks: [
+      {task_id: "config-id", node_key: "config_assistant1:BuildRunConfig", status: "completed"},
+      {task_id: "generate-id", node_key: "topology_generator1:GenerateTopology", status: "completed"},
+      {task_id: "draw-id", node_key: "draw_topology1:RenderTopologies", status: "completed"}
+    ],
+    outputs: ["config-id", "generate-id", "draw-id"].map(task_id => ({task_id, payload: {}}))
+  })`);
+  for (const id of ['timeline', 'output']) {
+    const html = ui.element(id).innerHTML;
+    for (const label of ['Configuration preparation', 'Topology generation', 'Topology visualization']) {
+      assert.ok(html.includes(`>${label}<`));
+    }
+    for (const taskId of ['config-id', 'generate-id', 'draw-id']) {
+      assert.ok(html.includes(`Task ID: <code>${taskId}</code>`));
+    }
+    assert.doesNotMatch(html, /<(?:strong|h3)[^>]*>(?:config-id|generate-id|draw-id)</);
+    assert.doesNotMatch(html, /<details[^>]*\bopen\b/);
+  }
+});
+
+test('unknown operations and task identifiers remain escaped and identifiable', async () => {
+  const ui = await setup();
+  ui.run(`renderOutputs({
+    tasks: [{task_id: "<id>", node_key: "other:Custom<operation>"}],
+    outputs: [{task_id: "<id>", payload: {}}]
+  })`);
+  for (const id of ['timeline', 'output']) {
+    assert.match(ui.element(id).innerHTML, /Custom&lt;operation&gt;/);
+    assert.match(ui.element(id).innerHTML, /Task ID: <code>&lt;id&gt;<\/code>/);
+  }
+});
+
+test('running status uses the readable operation rather than its task ID', async () => {
+  const ui = await setup(async () => ({ok: true, json: async () => ({
+    workflow_id: 'wf', status: 'running', outputs: [],
+    tasks: [{task_id: 'generate-id', node_key: 'topology_generator1:GenerateTopology', status: 'running'}],
+  })}));
+  ui.run('workflowId = "wf"');
+  await ui.run('pollWorkflow()');
+  assert.equal(ui.element('status').textContent, 'Running Topology generation...');
+});
+
 test('successful submission displays progress and reveals decisions only on completion', async () => {
   const ui = await setup(async url => ({ok: true, json: async () => url === '/submit'
     ? {workflow_id: 'wf', status: 'running', outputs: []}
