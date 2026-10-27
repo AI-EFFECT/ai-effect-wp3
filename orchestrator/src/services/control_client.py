@@ -6,6 +6,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, field_validator
 
 from models.data_reference import DataReference
+from services.parameter_contract import match_wrapper_configuration, validate_configuration_envelope
 
 
 class ControlClientError(Exception):
@@ -24,6 +25,7 @@ class ExecuteRequest(BaseModel):
     task_id: str
     inputs: list[DataReference] = []
     parameters: dict | None = None
+    configuration: dict | None = None
 
     @field_validator("method")
     @classmethod
@@ -94,10 +96,16 @@ class ControlClient:
         task_id: str,
         inputs: list[DataReference] | None = None,
         parameters: dict | None = None,
+        configuration: dict | None = None,
     ) -> ExecuteResponse:
         """Call POST /control/execute."""
         if not base_url or not base_url.strip():
             raise ValueError("base_url is required")
+
+        if configuration is not None:
+            if parameters is not None:
+                raise ValueError("Legacy parameters and validated configuration are mutually exclusive")
+            self.check_configuration(base_url, method, configuration)
 
         request = ExecuteRequest(
             method=method,
@@ -105,6 +113,7 @@ class ControlClient:
             task_id=task_id,
             inputs=inputs or [],
             **({"parameters": parameters} if parameters is not None else {}),
+            **({"configuration": configuration} if configuration is not None else {}),
         )
 
         url = f"{base_url.rstrip('/')}/control/execute"
@@ -129,6 +138,18 @@ class ControlClient:
             return ExecuteResponse.model_validate(data)
         except Exception as e:
             raise ControlClientError(f"Invalid response: {e}") from e
+
+    def check_configuration(self, base_url: str, method: str, configuration: dict) -> dict:
+        """Read-only handshake, shared by preflight and configured dispatch."""
+        try:
+            validate_configuration_envelope(configuration)
+            with httpx.Client(timeout=min(self._timeout, 5)) as client:
+                response = client.get(f"{base_url.rstrip('/')}/control/capabilities", headers=self._headers)
+            if response.status_code != 200:
+                raise ValueError(f"Wrapper capabilities unavailable (HTTP {response.status_code})")
+            return match_wrapper_configuration(method, configuration, response.json())
+        except (httpx.RequestError, ValueError, TypeError, KeyError) as exc:
+            raise ControlClientError(f"Configuration compatibility rejected: {exc}") from exc
 
     def get_status(self, base_url: str, task_id: str) -> StatusResponse:
         """Call GET /control/status/{task_id}."""
