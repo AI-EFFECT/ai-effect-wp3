@@ -23,6 +23,7 @@ class ExecuteRequest(BaseModel):
     workflow_id: str
     task_id: str
     inputs: list[DataReference] = []
+    parameters: dict | None = None
 
     @field_validator("method")
     @classmethod
@@ -92,6 +93,7 @@ class ControlClient:
         workflow_id: str,
         task_id: str,
         inputs: list[DataReference] | None = None,
+        parameters: dict | None = None,
     ) -> ExecuteResponse:
         """Call POST /control/execute."""
         if not base_url or not base_url.strip():
@@ -102,13 +104,14 @@ class ControlClient:
             workflow_id=workflow_id,
             task_id=task_id,
             inputs=inputs or [],
+            **({"parameters": parameters} if parameters is not None else {}),
         )
 
         url = f"{base_url.rstrip('/')}/control/execute"
 
         try:
             with httpx.Client(timeout=self._timeout) as client:
-                response = client.post(url, json=request.model_dump(mode="json"), headers=self._headers)
+                response = client.post(url, json=request.model_dump(mode="json", exclude_unset=True), headers=self._headers)
         except httpx.ConnectError as e:
             raise ControlClientError(f"Connection failed: {e}") from e
         except httpx.TimeoutException as e:
