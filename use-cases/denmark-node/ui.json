@@ -1,0 +1,41 @@
+{
+  "id": "denmark-node",
+  "title": "Topology Generator Workflow",
+  "description": "Submit an experiment request, follow the configured services, and review the generated SYSLAB topology output.",
+  "submit_label": "Generate topology",
+  "poll_interval_ms": 2000,
+  "theme": {
+    "accent": "#1d7a68",
+    "accent_strong": "#12594d",
+    "background": "radial-gradient(circle at top left, rgba(29, 122, 104, 0.16), transparent 32rem), linear-gradient(135deg, #f7f4e8 0%, #eef6f2 58%, #f8fbf9 100%)"
+  },
+  "inputs": [
+    {
+      "name": "prompt",
+      "label": "Experiment request",
+      "type": "textarea",
+      "required": true,
+      "placeholder": "Example: Use the CHP at 310-D as supply and feed the heat dumpload on 716-D.",
+      "help": "Describe the equipment, connections, and operating conditions for your experiment."
+    }
+  ],
+  "output": {
+    "title": "Topology recommendation",
+    "summary_fields": ["reason", "summary", "report"],
+    "image_collection_field": "drawings",
+    "image_signature_field": "signature",
+    "selected_value_field": "signature"
+  },
+  "actions": [
+    {
+      "name": "accepted",
+      "label": "Confirm topology",
+      "style": "primary"
+    },
+    {
+      "name": "rejected",
+      "label": "Reject topology",
+      "style": "danger"
+    }
+  ]
+}

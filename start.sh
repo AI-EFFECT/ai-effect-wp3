@@ -10,6 +10,7 @@ AVAILABLE_USE_CASES=(
   "germany-node"
   "portugal-node-sidecar"
   "portugal-node-integrated"
+  "denmark-node" #manually added for testing
 )
 
 usage() {
