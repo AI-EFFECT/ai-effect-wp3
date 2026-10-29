@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: ai-explainability
-Version: 0.3.0
+Version: 0.4.0
 Summary: A standardized, model-agnostic toolbox for AI explainability using SHAP, with a focus on energy-sector workflows.
 Author-email: Bastien Giraud <bagir@dtu.dk>
 Maintainer-email: Bastien Giraud <bagir@dtu.dk>
@@ -319,4 +319,3 @@ For questions, bug reports, or collaboration inquiries, please reach out to the 
 This toolbox is built upon the following foundational research and libraries:
 
 * **Explainability (SHAP):** S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," *Advances in Neural Information Processing Systems*, vol. 30, pp. 4765–4774, 2017. [Link to Paper](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html)
-

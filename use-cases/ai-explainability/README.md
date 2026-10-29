@@ -66,6 +66,9 @@ python3 -m venv .venv-sample
 Then use the generated files in the web UI, or paste the contents of
 `sample-config.json` into the configuration field. Completed runs return a
 Markdown feature-influence report and links to generated artifacts.
+The status list and result cards label the workflow steps as **Configuration
+validation** and **Explainability analysis**. Task IDs remain available under
+**Technical details**, and JSON payloads under **Raw output**.
 
 Describe the requested analysis on the first screen. The assistant will confirm
 a supported setup, ask one short follow-up question, or explain briefly that
@@ -135,10 +138,32 @@ For example, when using mounted assets:
 }
 ```
 
+Submit a manual configuration directly to the orchestrator with:
+
+```bash
+./submit-workflow.sh sample-config.json
+```
+
+The script resolves configured file paths against `assets/` and fills omitted
+required paths when exactly one matching asset is available: a model from
+`assets/models/`, a tabular dataset from `assets/data/`, and LSTM background/test
+tensors whose filenames contain `background`/`test`. If a role has zero or
+multiple matches, set that path explicitly in the configuration. It reports the
+workflow ID after submission; check the printed status URL separately for
+completion.
+
 The adapter writes all results to `/data/<workflow_id>/<task_id>/` on the shared
 Docker volume, returns `summary.json` as a file DataReference, and includes the
 artifact names in its output. Set `save_excel` or `generate_notebook` in the
 configuration to control optional reports.
+
+Before analysis, the runner loads the model using its existing backend and runs
+the upstream `inspect_model` and `resolve_config` APIs. Model/data metadata fills
+missing settings; explicit user configuration takes precedence. LSTM window and
+feature dimensions come from the test tensor when omitted. The resolved settings
+and inspection profile are saved in `model_inspection.json` and included in the
+workflow output's technical details. Inspection happens during execution, not
+during upload: the upload metadata endpoint still does not deserialize models.
 
 The assistant reads the same lightweight
 [capability contract](services/explainability_runner/toolbox/ai_explainability/capabilities.py)
@@ -265,6 +290,13 @@ the orchestrator to the portal with ngrok. Put model and data files under
   ./start.sh
   docker compose ps
   ```
+
+  The local web UI connects to `http://ai-effect-orchestrator:8000` over
+  `ai-effect-services`. The orchestrator API joins this network with the
+  `ai-effect-orchestrator` alias; its host port remains `18000` for external
+  clients. Recreate the API and web UI containers after changing these Compose
+  settings. This avoids relying on `host.docker.internal` for local submission.
+
 3. Configure ngrok once with `ngrok config add-authtoken YOUR_NGROK_TOKEN`,
   then run `ngrok http 18000`. Keep the tunnel running and copy its HTTPS URL.
 4. In the portal, open the imported solution and click **Edit**. Set the

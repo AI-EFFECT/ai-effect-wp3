@@ -156,6 +156,21 @@ result.save_excel("out.xlsx") # opt-in, only if you want disk output
 
 `save_excel` and `generate_notebook` default to `False` and `output_dir` is not auto-created, so a call like the one above touches zero files. Full walkthrough including a Unity Catalog + Delta example is in [`docs/databricks.md`](./docs/databricks.md).
 
+### 5. Auto-configuration from a fitted model
+`inspect_model` infers configuration fields from a fitted model and optional
+labelled data. Resolve the remaining user choices with `resolve_config` before
+calling `explain`:
+
+```python
+profile = aie.inspect_model(model, df)
+print(profile.describe())
+config = aie.resolve_config(profile, {"target_index": [0], "save_excel": False})
+result = aie.explain(model=model, data=df, **config)
+```
+
+The profile exposes inferred values, missing form-field specifications,
+warnings, and notes as a JSON-compatible dictionary via `profile.to_dict()`.
+
 #### Feedforward neural network (PyTorch or TensorFlow)
 Pass a fitted MLP and pick the SHAP backend with `explainer_type` (`kernel`, `gradient`, or `deep`). The `package` key selects the framework (auto-detected if omitted):
 
@@ -265,4 +280,3 @@ For questions, bug reports, or collaboration inquiries, please reach out to the 
 This toolbox is built upon the following foundational research and libraries:
 
 * **Explainability (SHAP):** S. M. Lundberg and S.-I. Lee, "A unified approach to interpreting model predictions," *Advances in Neural Information Processing Systems*, vol. 30, pp. 4765–4774, 2017. [Link to Paper](https://proceedings.neurips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html)
-
