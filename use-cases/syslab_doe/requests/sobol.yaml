@@ -1,0 +1,56 @@
+# Example request: doe_type sobol. The layout is explained in requests/doe_request_template.yaml.
+experiment_id: demo-sobol
+scenario_name: poc_sobol
+target: simulation
+doe_conf:
+  doe_type: sobol
+  samples: 12
+  add_extreme_points: true
+entities_parameters:
+  runner_parameters:
+    dt_s: 30.0
+    sim_duration_h: 10
+  input_timeseries:
+    q_demand_kw:
+      type: timeseries
+      reference: profiles/demand_profile.csv
+      column: q_kw
+      interpolation: hold
+      scale: 1.0
+      offset: 0.0
+      unit: kW
+    t_supply_setpoint_c:
+      type: step
+      initial: 60.0
+      final: 80.0
+      time: 3600
+      scale: 1.0
+      offset: 0.0
+      unit: degC
+  controller_parameters:
+    type: sequence
+    sequence_setpoints: [40.0, 60.0, 90.0]
+    sequence_step_duration: 1800
+  physical_model_parameters:
+    t_supply_fixed_c: 80.0
+    pump_p_flow_bar: 4.0
+    pump_lift_bar: 1.5
+    pipe_inner_diameter_mm: null
+    pipe_outer_diameter_mm: 50
+    pipe_roughness_mm: 0.1
+    pipe_u_w_per_mk: 0.3
+    pipe_length_km: null
+    pipe_sections: 30
+    t_ambient_c: 10.0
+    hx_inner_diameter_mm: 50
+    junction_pn_bar: 4.0
+    junction_t_init_c: 20.0
+    topology:
+      reference: topologies/example.json
+variations_dict:
+  input_timeseries:
+    q_demand_kw:
+      scale: [0.75, 1.25]
+  physical_model_parameters:
+    pipe_length_km: [0.25, 0.35]
+target_metrics: [min_return_temp_c, heat_loss_kwh, max_mass_flow_kg_s]

@@ -1,0 +1,189 @@
+{
+  "signature": "0552b275",
+  "trench_m": 428.2,
+  "pipe_m": 856.4,
+  "water_m3": null,
+  "pipes": {
+    "J2": "hx",
+    "E1": "hx"
+  },
+  "pipe_details": {
+    "J2": {
+      "ends": [
+        "310-D",
+        "310-T"
+      ],
+      "hx_at": "310-D",
+      "run": "A2",
+      "terminal": "Pipe J2",
+      "length_m": 5,
+      "buses": [
+        "310-D/Header 1",
+        "310-T/Header 1"
+      ]
+    },
+    "E1": {
+      "ends": [
+        "310-T",
+        "716-D"
+      ],
+      "hx_at": "716-D",
+      "run": "E1",
+      "terminal": "Pipe E1",
+      "length_m": 423.2,
+      "buses": [
+        "310-T/Header 1",
+        "716-D/Header 1"
+      ]
+    }
+  },
+  "supplies": [
+    "310-D::CHP"
+  ],
+  "loads": [
+    "716-D::Dumpload"
+  ],
+  "header_variants": 8,
+  "load_pattern": "single",
+  "load_order": [
+    "716-D::Dumpload"
+  ],
+  "buses": [
+    {
+      "id": "310-D/Header 1",
+      "switchboard": "310-D",
+      "header": "Header 1",
+      "terminals": [
+        "310-D::CHP",
+        "310-D::Pipe J2"
+      ],
+      "circuit": "A"
+    },
+    {
+      "id": "310-T/Header 1",
+      "switchboard": "310-T",
+      "header": "Header 1",
+      "terminals": [
+        "310-T::Pipe E1",
+        "310-T::Pipe J2"
+      ],
+      "circuit": "B"
+    },
+    {
+      "id": "716-D/Header 1",
+      "switchboard": "716-D",
+      "header": "Header 1",
+      "terminals": [
+        "716-D::Dumpload",
+        "716-D::Pipe E1"
+      ],
+      "circuit": "C"
+    }
+  ],
+  "circuits": [
+    {
+      "label": "A",
+      "buses": [
+        "310-D/Header 1"
+      ],
+      "switchboards": [
+        "310-D"
+      ],
+      "supplies": [
+        "310-D::CHP"
+      ],
+      "loads": [],
+      "internal_pipes": [],
+      "hx_pipes": [
+        "J2"
+      ]
+    },
+    {
+      "label": "B",
+      "buses": [
+        "310-T/Header 1"
+      ],
+      "switchboards": [
+        "310-T"
+      ],
+      "supplies": [],
+      "loads": [],
+      "internal_pipes": [],
+      "hx_pipes": [
+        "J2",
+        "E1"
+      ]
+    },
+    {
+      "label": "C",
+      "buses": [
+        "716-D/Header 1"
+      ],
+      "switchboards": [
+        "716-D"
+      ],
+      "supplies": [],
+      "loads": [
+        "716-D::Dumpload"
+      ],
+      "internal_pipes": [],
+      "hx_pipes": [
+        "E1"
+      ]
+    }
+  ],
+  "hx_links": [
+    {
+      "from": "A",
+      "to": "B",
+      "pipe": "J2"
+    },
+    {
+      "from": "B",
+      "to": "C",
+      "pipe": "E1"
+    }
+  ],
+  "valve_plan": {
+    "open": [
+      "310-D/CHP/Header 1.F",
+      "310-D/CHP/Header 1.R",
+      "310-D/Pipe J2/Header 1.F",
+      "310-D/Pipe J2/Header 1.R",
+      "310-T/Pipe E1/Header 1.F",
+      "310-T/Pipe E1/Header 1.R",
+      "310-T/Pipe J2/Header 1.F",
+      "310-T/Pipe J2/Header 1.R",
+      "716-D/Dumpload/Header 1.F",
+      "716-D/Dumpload/Header 1.R",
+      "716-D/Pipe E1/Header 1.F",
+      "716-D/Pipe E1/Header 1.R"
+    ],
+    "close": [
+      "310-D/CHP/Header 2.F",
+      "310-D/CHP/Header 2.R",
+      "310-D/CHP/Header B.B",
+      "310-D/Pipe J2/Header 2.F",
+      "310-D/Pipe J2/Header 2.R",
+      "310-D/Pipe J2/Header B.B",
+      "310-T/Pipe E1/Header 2.F",
+      "310-T/Pipe E1/Header 2.R",
+      "310-T/Pipe E1/Header 3.F",
+      "310-T/Pipe E1/Header 3.R",
+      "310-T/Pipe J2/Header 2.F",
+      "310-T/Pipe J2/Header 2.R",
+      "310-T/Pipe J2/Header 3.F",
+      "310-T/Pipe J2/Header 3.R",
+      "716-D/Dumpload/Header 2.F",
+      "716-D/Dumpload/Header 2.R",
+      "716-D/Dumpload/Header B.B",
+      "716-D/Pipe E1/Header 2.F",
+      "716-D/Pipe E1/Header 2.R",
+      "716-D/Pipe E1/Header B.B"
+    ],
+    "heat_exchangers": [
+      "310-D/HX-J2: THROUGH  (bypass valves closed)",
+      "716-D/HX-E1: THROUGH  (bypass valves closed)"
+    ]
+  }
+}

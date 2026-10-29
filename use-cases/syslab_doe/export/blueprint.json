@@ -1,0 +1,102 @@
+{
+    "nodes": [
+        {
+            "proto_uri": "microservice/design_of_experiments1.proto",
+            "image": "syslab_doe-design-of-experiments:latest",
+            "node_type": "DataSource",
+            "container_name": "design_of_experiments1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [
+                        {
+                            "container_name": "synthetic_runner1",
+                            "operation_signature": {
+                                "operation_name": "RunExperiments"
+                            }
+                        }
+                    ],
+                    "operation_signature": {
+                        "operation_name": "DesignExperiment",
+                        "output_message_name": "DesignExperimentResponse",
+                        "input_message_name": "DesignExperimentRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        },
+        {
+            "proto_uri": "microservice/doe_analysis1.proto",
+            "image": "syslab_doe-doe-analysis:latest",
+            "node_type": "DataSink",
+            "container_name": "doe_analysis1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [],
+                    "operation_signature": {
+                        "operation_name": "AnalyzeResults",
+                        "output_message_name": "AnalyzeResultsResponse",
+                        "input_message_name": "AnalyzeResultsRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        },
+        {
+            "proto_uri": "microservice/kpi_calculator1.proto",
+            "image": "syslab_doe-kpi-calculator:latest",
+            "node_type": "MLModel",
+            "container_name": "kpi_calculator1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [
+                        {
+                            "container_name": "doe_analysis1",
+                            "operation_signature": {
+                                "operation_name": "AnalyzeResults"
+                            }
+                        }
+                    ],
+                    "operation_signature": {
+                        "operation_name": "CalculateKpis",
+                        "output_message_name": "CalculateKpisResponse",
+                        "input_message_name": "CalculateKpisRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        },
+        {
+            "proto_uri": "microservice/synthetic_runner1.proto",
+            "image": "syslab_doe-synthetic-runner:latest",
+            "node_type": "MLModel",
+            "container_name": "synthetic_runner1",
+            "operation_signature_list": [
+                {
+                    "connected_to": [
+                        {
+                            "container_name": "kpi_calculator1",
+                            "operation_signature": {
+                                "operation_name": "CalculateKpis"
+                            }
+                        }
+                    ],
+                    "operation_signature": {
+                        "operation_name": "RunExperiments",
+                        "output_message_name": "RunExperimentsResponse",
+                        "input_message_name": "RunExperimentsRequest",
+                        "output_message_stream": false,
+                        "input_message_stream": false
+                    }
+                }
+            ]
+        }
+    ],
+    "name": "Syslab Doe",
+    "pipeline_id": "46d97a8d-2b23-4cc2-8c8e-ffb7df0641fe",
+    "creation_date": "2026-10-29 23:00:35.844582",
+    "type": "pipeline-topology/v2",
+    "version": "2.0"
+}

@@ -1,0 +1,27 @@
+{
+    "use_case_name": "syslab_doe",
+    "use_case_directory": "syslab_doe",
+    "source_path": "../../use-cases/syslab_doe",
+    "services": [
+        {
+            "service_name": "design-of-experiments",
+            "container_name": "design_of_experiments1",
+            "image_name": "syslab_doe-design-of-experiments:latest"
+        },
+        {
+            "service_name": "doe-analysis",
+            "container_name": "doe_analysis1",
+            "image_name": "syslab_doe-doe-analysis:latest"
+        },
+        {
+            "service_name": "kpi-calculator",
+            "container_name": "kpi_calculator1",
+            "image_name": "syslab_doe-kpi-calculator:latest"
+        },
+        {
+            "service_name": "synthetic-runner",
+            "container_name": "synthetic_runner1",
+            "image_name": "syslab_doe-synthetic-runner:latest"
+        }
+    ]
+}
