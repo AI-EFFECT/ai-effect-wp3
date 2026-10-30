@@ -1,0 +1,24 @@
+{
+    "docker_info_list": [
+        {
+            "container_name": "design_of_experiments1",
+            "ip_address": "design-of-experiments",
+            "port": "8080"
+        },
+        {
+            "container_name": "doe_analysis1",
+            "ip_address": "doe-analysis",
+            "port": "8080"
+        },
+        {
+            "container_name": "kpi_calculator1",
+            "ip_address": "kpi-calculator",
+            "port": "8080"
+        },
+        {
+            "container_name": "synthetic_runner1",
+            "ip_address": "synthetic-runner",
+            "port": "8080"
+        }
+    ]
+}

@@ -1,0 +1,42 @@
+{
+  "pipeline": {
+    "name": "SYSLAB Design of Experiments",
+    "description": "Design of experiments -> synthetic runner -> KPI calculator -> analysis. design-of-experiments turns a DoE request (factors, ranges, method) into experiment_design.json; synthetic-runner is a stand-in for the experiment runner and simulator and writes made-up time series for every run (not a simulation); kpi-calculator computes the requested target metrics of every run from its time series; doe-analysis works out which factors drive which metrics. The topology generator, the district-heating simulator and the lab test will be added as further nodes, replacing the stand-in.",
+    "start_service": "design-of-experiments",
+    "service_mapping": {
+      "design_of_experiments": {
+        "ip_address": "design-of-experiments",
+        "port": 8080
+      },
+      "synthetic_runner": {
+        "ip_address": "synthetic-runner",
+        "port": 8080
+      },
+      "kpi_calculator": {
+        "ip_address": "kpi-calculator",
+        "port": 8080
+      },
+      "doe_analysis": {
+        "ip_address": "doe-analysis",
+        "port": 8080
+      }
+    },
+    "connections": [
+      {
+        "from_service": "design-of-experiments",
+        "to_service": "synthetic-runner",
+        "to_method": "RunExperiments"
+      },
+      {
+        "from_service": "synthetic-runner",
+        "to_service": "kpi-calculator",
+        "to_method": "CalculateKpis"
+      },
+      {
+        "from_service": "kpi-calculator",
+        "to_service": "doe-analysis",
+        "to_method": "AnalyzeResults"
+      }
+    ]
+  }
+}
