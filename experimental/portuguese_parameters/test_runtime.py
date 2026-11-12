@@ -148,6 +148,13 @@ def test_capability_declarations_are_only_implemented_operations(env):
     assert {o["operation_name"] for o in value["operations"]} == {"GenerateData", "TrainModel"}
 
 
+def test_public_health_does_not_expose_private_capabilities(env):
+    sandbox, _, _ = env
+    with TestClient(create_app(sandbox)) as public:
+        assert public.get('/health').status_code == 200
+        assert public.get('/control/capabilities').status_code in (401, 403)
+
+
 @pytest.mark.parametrize("params", [{"epochs": v, "batch_size": 4} for v in (True, "1", 0, 3)] + [{"epochs": 1, "batch_size": v} for v in (True, 1, 17)])
 def test_training_constraints_are_strict_before_upstream(env, params):
     sandbox, client, calls = env

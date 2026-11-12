@@ -216,6 +216,9 @@ class Sandbox:
 
 def create_app(sandbox):
     app = FastAPI(title="EXPERIMENTAL Portuguese parameter sandbox")
+    @app.get("/health")
+    def health():
+        return {"status": "ok", "scope": "platform-controlled experimental adapter; no scientific readiness claim"}
     def authorize(authorization: str = Header(default="")):
         if not secrets.compare_digest(authorization, "Bearer " + sandbox.token):
             raise HTTPException(401, "Sandbox service authorization required")
