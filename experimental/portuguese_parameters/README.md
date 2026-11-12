@@ -111,3 +111,21 @@ distribution, private service auth/network/storage design and multi-tenant model
 authority. This local experiment does not establish production compatibility or
 scientific suitability. Provider and spending controls are unrelated and remain
 disconnected/exhausted.
+
+## Completed bounded platform sandbox
+
+Portal draft PR #22 (IRESI-EU/ai-effect-solution-studio) records the isolated
+integration and actual evidence. The sole training completed with epochs 1,
+batch_size 4, max_sequence_len 100, sample_len 1 in the saved model. Two genuine
+GenerateData workflows using that model produced 10/20 sequences and 1000/2000
+CSV rows. First-run immutable settings/output and the model hash remained unchanged.
+These are parameter/completion observations, not scientific quality assessment.
+No original Portuguese file or deployment was edited. The sandbox's worker is
+stopped and its durable one-training/two-generation ceiling is exhausted.
+
+The initial 29 offline runtime tests were extended with public-health/private-
+capability separation: 30 pass. The Portal report separates these upstream doubles
+from genuine execution. build_images.py packages explicit committed source using
+only verified retained local dependency images, without starting any service.
+The original retained WP3 image had older readiness bytes; Wp3.Dockerfile adds
+the exact maintained PR #3 source as a separate image rather than relabeling it.
