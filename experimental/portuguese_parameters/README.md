@@ -149,3 +149,29 @@ uncertain response. Signed v2 captures permit read-only historical Portal checks
 legacy behavior, scoped dispatch, provenance, corruption, batch-size clamp and
 uncertainty. The sole new combined real execution is pending the published
 Portal integration checkpoint. Original Portuguese paths remain unchanged.
+
+### Completed connected phase — 2026-11-13
+
+The above pending statement records the source checkpoint. After publication of
+Portal source/integration, exactly one newly authorized combined workflow
+`wf-a891cece9438` completed: TrainModel `task_030152d9`, then GenerateData
+`task_f6c5c14e`. Saved model configuration is epochs 2, batch_size 4,
+max_sequence_len 100, sample_len 1. The consumer used the same producer model
+SHA-256 `408519959182447598e94fe0e997d8ea5f1589b0f917e802dc6c2b67898f366e`;
+CSV contains ten sequences of 100 observations (1000 rows), SHA-256
+`f8b2ca463392571f573a899eabd414b7ee07101521782cfd3cfdca27e31d3d57`.
+
+Runtime/contracts/observer/targeted-worker source was
+`30e1ac403c7434149f3ff3568843f2cc75702413`. The new additive authorization
+`pt-chain-20261113-01` is closed, targeted worker exited 0, daemon remains stopped
+and queues are empty. Three original jobs, the prior model/CSV hashes, owner
+designs and exhausted scope remain unchanged. Shared provider ledger stays 25/25;
+no provider request or original Portuguese source/deployment change occurred.
+
+[Portal PR #22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22)
+contains PORTUGUESE_CHAINED_WORKFLOW_2026-11-13.md, chain-verification.json and
+rendered actual results. Historical evidence also passed a refreshed browser
+inspection with the read-only observer stopped, then restored. These real local
+argument/model/output observations are separate from the 52 protocol/loader
+tests. They establish neither scientific suitability, partner approval nor
+hosted/multi-tenant production readiness. No further execution is authorized.
