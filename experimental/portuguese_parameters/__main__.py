@@ -10,7 +10,8 @@ def application():
     policy = json.loads(Path(os.environ["PT_SANDBOX_POLICY"]).read_text())
     token = Path(os.environ["PT_SANDBOX_TOKEN_FILE"]).read_text().strip()
     return create_app(Sandbox(os.environ["PT_SANDBOX_STORAGE"], policy, token=token,
-        upstream=os.environ["PT_SANDBOX_UPSTREAM"], self_url=os.environ["PT_SANDBOX_SELF_URL"]))
+        upstream=os.environ["PT_SANDBOX_UPSTREAM"], self_url=os.environ["PT_SANDBOX_SELF_URL"],
+        model_proof_url=os.environ.get("PT_SANDBOX_MODEL_PROOF_URL")))
 
 
 if __name__ == "__main__":

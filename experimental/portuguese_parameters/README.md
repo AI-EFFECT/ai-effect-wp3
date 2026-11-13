@@ -129,3 +129,23 @@ from genuine execution. build_images.py packages explicit committed source using
 only verified retained local dependency images, without starting any service.
 The original retained WP3 image had older readiness bytes; Wp3.Dockerfile adds
 the exact maintained PR #3 source as a separate image rather than relabeling it.
+
+## Version 0.2 chained path (separate authorization)
+
+chain_contracts.json declares explicit whole-output-v1 model_ref forwarding from
+TrainModel into GenerateData. The HTTP JSON reference is resolved locally against
+the same authorized producer workflow/task/owner and current model artifact; no
+arbitrary URL or path is fetched. Existing 0.1 contracts/references remain intact.
+Models are run-specific. model_observer.py runs read-only with unchanged retained
+ML dependencies to inspect saved configuration/hash, without an algorithm call.
+
+authorization.py is the supported additive journal operator: create a versioned
+attributable frozen policy, bind one returned workflow, inspect status, close.
+It never resets legacy records/counts or marks running work uncertain merely to
+read operator status. New tasks reserve once and cannot redispatch after an
+uncertain response. Signed v2 captures permit read-only historical Portal checks.
+
+52 focused experimental checks pass with protocol/model-loader doubles, including
+legacy behavior, scoped dispatch, provenance, corruption, batch-size clamp and
+uncertainty. The sole new combined real execution is pending the published
+Portal integration checkpoint. Original Portuguese paths remain unchanged.

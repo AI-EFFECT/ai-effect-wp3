@@ -19,6 +19,7 @@ import sys
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field
+from .chain import ChainMixin, CHAIN_VERSION, declarations
 
 ROOT = Path(__file__).resolve().parents[2]
 # Load the portable export directly, without importing the orchestrator package
@@ -48,7 +49,7 @@ def capabilities():
     return {"capability_schema_version": "1.0", "transports": ["http-parameters-v1"],
         "implementation_kind": "platform_controlled_experimental_sidecar", "partner_native": False,
         "operations": [{"operation_name": name, "operation_identity": value["identity"], "contract_version": VERSION,
-            "execution_parameters": definition(name)} for name, value in CONTRACTS.items()]}
+            "execution_parameters": definition(name)} for name, value in CONTRACTS.items()] + declarations()}
 
 
 class Execute(BaseModel):
@@ -77,8 +78,8 @@ def verified_count(data, expected, sequence_len=100):
     return {"verified_examples": len(counts), "rows_per_example": sequence_len, "csv_rows": sum(counts.values())}
 
 
-class Sandbox:
-    def __init__(self, storage, policy, *, token, upstream, self_url, transport=None):
+class Sandbox(ChainMixin):
+    def __init__(self, storage, policy, *, token, upstream, self_url, transport=None, model_proof_url=None):
         provenance = json.loads((ROOT / "orchestrator/parameter_contract_provenance.json").read_text())
         if hashlib.sha256(Path(canonical.__file__).read_bytes()).hexdigest() != provenance["sha256"]:
             raise ValueError("Canonical validator provenance differs")
@@ -88,11 +89,13 @@ class Sandbox:
         self.storage.mkdir(parents=True, exist_ok=True)
         self.policy, self.token, self.upstream, self.self_url = policy, token, upstream.rstrip("/"), self_url.rstrip("/")
         self.transport = transport
+        self.model_proof_url = model_proof_url
         self.executor = ThreadPoolExecutor(max_workers=1)
         with self.db() as db:
             db.executescript("CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, fingerprint TEXT NOT NULL, method TEXT NOT NULL, request TEXT NOT NULL, state TEXT NOT NULL, result TEXT); CREATE TABLE IF NOT EXISTS models(ref TEXT PRIMARY KEY, owner TEXT NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL);")
             # A process death must never turn an uncertain dispatched request into a retry.
             db.execute("UPDATE jobs SET state='uncertain' WHERE state='running'")
+        self.initialize_chain()
 
     @contextmanager
     def db(self):
@@ -135,6 +138,8 @@ class Sandbox:
         return dataset
 
     def accept(self, request):
+        if request.configuration.get('contract_version') == CHAIN_VERSION:
+            return self.accept_chain(request)
         resource = self.validate(request)  # All validation before journal mutation or upstream access.
         body = request.model_dump()
         fingerprint = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
@@ -149,7 +154,7 @@ class Sandbox:
             if db.execute("SELECT 1 FROM jobs WHERE state IN ('failed','uncertain') LIMIT 1").fetchone():
                 raise ValueError("Sandbox stopped after failure/uncertain response; no further dispatch")
             limit = 1 if request.method == "TrainModel" else 2
-            if db.execute("SELECT count(*) FROM jobs WHERE method=?", (request.method,)).fetchone()[0] >= limit:
+            if db.execute("SELECT count(*) FROM jobs WHERE method=? AND id NOT IN (SELECT job_id FROM authorized_jobs)", (request.method,)).fetchone()[0] >= limit:
                 raise ValueError("Experimental execution ceiling exhausted; no replacement attempt")
             db.execute("INSERT INTO jobs VALUES(?,?,?,?,?,NULL)", (identity, fingerprint, request.method, json.dumps(body), "running"))
         self.executor.submit(self.perform, identity, request, resource)

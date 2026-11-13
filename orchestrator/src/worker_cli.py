@@ -84,7 +84,9 @@ def main() -> int:
     logger.info(f"Loaded {len(endpoints)} service endpoints")
 
     # Create worker
-    client = ControlClient()
+    # Match the maintained daemon's per-workflow private service authority.
+    services_key = redis_client.get(f"services_key:{args.workflow_id}")
+    client = ControlClient(api_key=services_key) if services_key else ControlClient()
     worker = Worker(engine, client, endpoints, poll_interval=args.poll_interval)
 
     # Run until workflow complete
