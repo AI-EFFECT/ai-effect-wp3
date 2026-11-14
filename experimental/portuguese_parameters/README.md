@@ -175,3 +175,42 @@ inspection with the read-only observer stopped, then restored. These real local
 argument/model/output observations are separate from the 52 protocol/loader
 tests. They establish neither scientific suitability, partner approval nor
 hosted/multi-tenant production readiness. No further execution is authorized.
+
+### Owner's existing queued request recovered — 2026-11-14
+
+Existing workflow `wf-375a888b8976` (solution
+`d733ce01-6489-4865-aec5-c96ffdf2ec9b`) was reported running by WP3 after enqueue,
+but both tasks remained pending and the root task was still queued. The daemon
+and prior targeted worker had exited before submission, the adapter had no
+reservation for this workflow, its derived upstream model identity was absent
+and the earlier scope was closed. Missing capture alone was not treated as proof.
+
+After the user's explicit authorization and immutable 1/4/10 effective-settings
+checks, the existing supported journal operator created/bound a new attributable
+scope `pt-owner-recovery-20261114-01` to this exact request. A uniquely named
+targeted worker consumed the one existing root queue entry. No new workflow was
+submitted, no prior scope reset, and no algorithm retried. This reused unchanged
+runtime/targeted-worker source `30e1ac403c7434149f3ff3568843f2cc75702413`.
+
+Both tasks completed once. Saved model records epochs 1, batch_size 4,
+max_sequence_len 100 and sample_len 1; GenerateData consumed the exact producer
+model, SHA-256 `b05b022b7c78d08f14877b66c1726481272794fad9c0eb3d3e7560a5740b12e5`.
+CSV has ten sequences × 100 observations (1000 rows), SHA-256
+`98fc83609c6690612b1fcd239ba45df167fa2915fdeee4ef13fa5b2ccf198f60`.
+The scope is now closed, worker exited 0 and remaining queues are empty. Original
+five jobs/model mappings/audit records and all earlier model/output hashes are
+preserved; journal now contains seven completed jobs. Provider ledger unchanged
+at 25/25. Original Portuguese source, algorithm, API and image remain unchanged.
+
+Portal source checkpoint `002686f04fb584d5bea2f1556d8e994405f1db45` adds the
+narrow inspection-only submission/readiness guard and task-fact status display,
+without another WP3 job-management subsystem or runtime change. It refuses new
+interactive submissions before enqueueing and distinguishes all-pending queued
+tasks from claimed tasks. Terminal task evidence remains independently verified.
+
+[Exact Portal recovery report](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/002686f04fb584d5bea2f1556d8e994405f1db45/docs/PORTUGUESE_OWNER_RECOVERY_2026-11-14.md)
+and [sanitized evidence](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/002686f04fb584d5bea2f1556d8e994405f1db45/deploy/portuguese_sandbox/owner-recovery-verification.json)
+are in existing draft PR #22. This WP3 follow-up changes documentation only;
+no claim of a fresh WP3 test run is made. Scientific suitability, partner approval
+and hosted production compatibility remain unverified. No further execution is
+authorized by this record.
