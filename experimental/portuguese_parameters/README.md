@@ -281,3 +281,25 @@ proposal. No new scope, provider or execution. This documentation is not a later
 algorithm result, partner approval or production qualification. Earlier recovery
 failure remains recorded; Start success and outside-Codex rename success do not
 establish its cause.
+
+
+### 16 November supervised acceptance: stopped at failed readiness
+
+Portal frozen request `96f346d9e87f5c68bc45b5e35d7c62ad671591a012711d53ef383c50addca00b` was explicitly authorized once.
+Supported scope `pt-supervised-browser-20261116-01` was created, then closed
+unbound after the named standby exited during its first read-only capability
+probe. Launch-before-activation sequencing recreated pt-adapter beneath the
+processor; its probe failed DNS resolution, leaving no fresh readiness lease.
+Builder Prepare was clicked once, readiness denied, Confirm never clicked.
+New workflow/training/generation counts **0/0/0**; no retries or replacement.
+No parameter/contract mismatch was demonstrated; preflight parameter/I/O checks
+passed. No new algorithm-consumption/model/output result exists.
+
+All supervised flags disabled and original private configuration restored. Failed
+worker retained exited 1; other workers stopped. Seven historical jobs, eight
+saved designs, models/artifacts/queues and byte-identical exhausted 25/25 ledger
+preserved. Original Portuguese ML image/source unchanged. See
+[Portal PR22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22) for
+sanitized failure/closure evidence. A stable adapter-before-standby activation
+order requires review/non-executing verification before any separately authorized
+new attempt. Never restart this processor or reopen its closed scope.
