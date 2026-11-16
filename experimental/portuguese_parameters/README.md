@@ -66,6 +66,25 @@ Genuine-provider acceptance needs a frozen reviewed case/registration and suppor
 separate spending/accounting allocation; this pass leaves accounting exhausted and
 unmodified. Portuguese-node owner/deployment qualification, independent usability,
 scientific suitability and production compatibility remain unverified.
+### Frozen provider-only proposal — preparation, no activation
+
+Portal [32f7820e08aa6c0ca7a68bfca121dbdfa4b8a4d6](https://github.com/IRESI-EU/ai-effect-solution-studio/commit/32f7820e08aa6c0ca7a68bfca121dbdfa4b8a4d6)
+publishes the [three-case session specification](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/32f7820e08aa6c0ca7a68bfca121dbdfa4b8a4d6/docs/PORTUGUESE_PROVIDER_ACCEPTANCE_2026-11-16.md):
+recommendation,2/4/20 configuration/persistence, and genuinely ambiguous missing-input
+case, one call each, no follow-up/retry. Proposed Luna/low/Standard reservation
+ceiling USD0.015; global USD0.10 preserved. New host-operator phase supports only
+an explicit new0/3 scope and25→28 amendment after separate owner approval; dry-run
+passed without modifying the actual25/25 ledger. No allocation was activated.
+
+Offline75 focused checks passed; final10 changed checks rerun passed (overlapping,
+not additive). Genuine interpretation remains UNTESTED. Accounting transport is
+BLOCKED: the retained API's internal-only Docker network cannot resolve
+host.docker.internal. The report proposes an API-only egress/public-CA change;
+none was applied. All11 designs, accepted AI draft, nine completed journal jobs,
+four closed scopes, queues,56 retained containers and ledger remain unchanged.
+Provider disconnected, supervision OFF and workers stopped. No new algorithm,
+grant, live draft or WP3 runtime/source/image change. This maintained commit is
+documentation only; no new WP3 tests/builds or Portuguese-hosted qualification.
 <!-- END-CURRENT-OPERATIONAL-STATUS -->
 
 # EXPERIMENTAL Portuguese instance parameters
