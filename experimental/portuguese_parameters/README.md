@@ -258,3 +258,26 @@ components, pinned builds, fresh UI Save/refresh/Validate, exact request freeze
 and separate explicit execution approval. It is not authorized by this record.
 Provider ledger remains byte-identical at 25/25. No new workflow, algorithm,
 provider call, partner-native approval, node or production readiness is claimed.
+
+
+### 16 November retained recovery/package checks: no new execution
+
+Source 17f32be413fe64532373f70d8b862002c3427a8c packaged offline from retained pinned inputs.
+Adapter `sha256:9e92cca958ae4cf83d67acc26c41a968d083a93ecebcc5d2853743d585b149eb`;
+worker candidate `sha256:28f727ed76d6c3c1083460fcb93b47f5079d2eb501298c9dd6d0230e9bbd376a`.
+Runtime/supervision and supervised_worker/canonical protocol imports passed with
+networking disabled; no Sandbox constructed, worker main or algorithm invoked.
+Only the existing adapter review component was replaced. Original ML image
+`sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f` unchanged; all three workers stopped, both flags
+disabled. Seven complete jobs, closed scopes, hashes/models/queues and unchanged
+25/25 ledger passed read-only preservation checks.
+
+Portal source 75ccb8fd09be477d5517bea26c139011f9436ad6 passed four actual PostgreSQL admission
+concurrency cases (HTTP/dispatch doubled), 23 frontend helper checks, 18 packaged
+checks, typecheck/build and fresh visible manual Builder Save/refresh/Validate.
+[Portal PR22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22) contains
+sanitized evidence, frozen request/revision/hash, exact images and later closure
+proposal. No new scope, provider or execution. This documentation is not a later
+algorithm result, partner approval or production qualification. Earlier recovery
+failure remains recorded; Start success and outside-Codex rename success do not
+establish its cause.
