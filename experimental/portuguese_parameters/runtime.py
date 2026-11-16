@@ -229,6 +229,25 @@ def create_app(sandbox):
             raise HTTPException(401, "Sandbox service authorization required")
     @app.get("/control/capabilities", dependencies=[Depends(authorize)])
     def capability(): return capabilities()
+    # Additive supervised boundary. Merely inspecting readiness cannot create or
+    # consume a grant. Existing inspection profiles do not enable these routes.
+    @app.post("/control/supervised/{action}", dependencies=[Depends(authorize)])
+    def supervised(action: str, value: dict):
+        import os
+        if os.environ.get("PT_SANDBOX_SUPERVISED") != "1":
+            raise HTTPException(409, "Supervised execution is disabled")
+        from . import supervision
+        from .authorization import AuthorizationOperator
+        operator = AuthorizationOperator(sandbox.storage, sandbox.policy)
+        try:
+            if action == "check":
+                return supervision.inspect(operator, value)
+            if action == "bind" and set(value) == {"request", "workflow_id", "policy_sha256"}:
+                return supervision.bind(operator, value["request"], value["workflow_id"],
+                                        "portal-supervised/" + sandbox.policy["owner_id"], expected_policy_sha256=value["policy_sha256"])
+            raise ValueError("Unsupported supervised action")
+        except (ValueError, KeyError, TypeError, OSError, sqlite3.Error):
+            raise HTTPException(409, "Supervised authority, frozen request or waiting processor is unavailable; no automatic retry") from None
     @app.post("/control/execute", dependencies=[Depends(authorize)])
     def execute(request: Execute):
         try: identity = sandbox.accept(request)

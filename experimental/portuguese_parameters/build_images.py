@@ -14,7 +14,7 @@ def main():
     tag,expected=BASES[a.role]
     assert json.loads(subprocess.check_output(D+['image','inspect',tag]))[0]['Id']==expected,'Retained build-input drift'
     scope=(['experimental/portuguese_parameters','orchestrator/src/services/parameter_contract.py','orchestrator/parameter_contract_provenance.json'] if a.role=='adapter' else
-        ['orchestrator/src','experimental/portuguese_parameters/Wp3.Dockerfile'] if a.role=='wp3' else
+        ['orchestrator/src','orchestrator/parameter_contract_provenance.json','experimental/portuguese_parameters'] if a.role=='wp3' else
         ['experimental/portuguese_parameters/model_observer.py','experimental/portuguese_parameters/Observer.Dockerfile'])
     archive=subprocess.check_output(['git','-c','core.longpaths=true','archive',source,*scope],cwd=ROOT)
     output={'adapter':'ai-effect-pt-parameter-adapter:','wp3':'ai-effect-pt-wp3:','observer':'ai-effect-pt-model-observer:'}[a.role]+source[:12]
