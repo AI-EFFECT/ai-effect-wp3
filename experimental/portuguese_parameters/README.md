@@ -1,3 +1,36 @@
+<!-- CURRENT-OPERATIONAL-STATUS -->
+## Current operational status — corrected candidate, awaiting one execution approval
+
+Earlier local parameter/model-handoff evidence remains valid. The original failed
+readiness attempt stays closed/unbound; its consumed processor must never restart.
+New source c98b454b1a9ce9b9a154ad82ef104678ba78b443 packages read-only probe recovery
+and fail-closed lease revocation. Affected tests: **49 passed**, one existing warning.
+
+Real probe-only DNS failure/recovery and 24 healthy cycles passed without journal
+mount, live authority, reservation or Worker processing. API-only recreation
+retained adapter identity/start time and did not interrupt that read-only process.
+Full fresh-lease activation/order/rollback uses disposable state, not a live
+standby/execution pass. Startup deadline 30s, probe budget 3s, operation timeout
+1s, poll 1s, lease 6s, standby max 300s. Only pre-binding read-only transient probes
+retry; auth/capability/policy drift fails explicitly. Binding, exact queue recheck
+and execution remain single-attempt.
+
+Portal's single helper stabilizes adapter with API OFF, then one separately
+authorized standby, then enables ONLY API after a fresh lease. No new live scope/
+standby/algorithm created. Three old scopes closed, seven jobs complete, models/
+outputs preserved, provider disconnected, ledger unchanged 25/25. Original ML
+unchanged. Fresh UI Save/refresh/Validate passed; current profile inspection-only.
+
+[Portal PR22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22) records
+exact images, operational-verification-20261116.json and the new
+proposed-supervised-operational-20261116.json. The unchanged frozen request is
+96f346d9e87f5c68bc45b5e35d7c62ad671591a012711d53ef383c50addca00b.
+Remaining decision: separate approval of that completed candidate before one
+new live attempt. No Portuguese-node/production qualification or new scientific
+result claimed. Design with AI stays disconnected; native-only composer excludes
+sidecars/external-input routing. Earlier records below remain historical evidence.
+<!-- END-CURRENT-OPERATIONAL-STATUS -->
+
 # EXPERIMENTAL Portuguese instance parameters
 
 Platform-controlled **sidecar**, not a Portuguese-owner-approved/native service.
