@@ -28,6 +28,17 @@ and node resource envelope before a node-specific supervised demonstration.
 No portability/scientific-quality/production/independent-usability claim.
 Design with AI stays disconnected; sidecar/external-input composition gap remains.
 This scope/processor is consumed: never reopen/restart it.
+
+Local Builder milestone closed for review. Portal documentation now provides a
+6½-minute Portuguese-node audience sequence and a separate UI-built count20
+settings-only design (Save/refresh/Validate passed; zero deployments). The genuine
+earlier10/20 standalone runs share a separately trained1/4 model; they are not
+results of that new design or the latest chained model. Protected output API
+downloads remain verified; browser-only Download control is a documented gap,
+with existing verified local CSV handouts. No new code/build/algorithm/grant.
+Next Design with AI work is proposed only: one explicitly registered Portuguese
+workflow, declared instance parameters and required authorized CSV, handed to
+the existing validated Builder. No global sidecar/external-input composer change.
 <!-- END-CURRENT-OPERATIONAL-STATUS -->
 
 # EXPERIMENTAL Portuguese instance parameters
