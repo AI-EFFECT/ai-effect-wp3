@@ -1,34 +1,33 @@
 <!-- CURRENT-OPERATIONAL-STATUS -->
-## Current operational status — corrected candidate, awaiting one execution approval
+## Current operational status — supervised local PASS; scope CLOSED
 
-Earlier local parameter/model-handoff evidence remains valid. The original failed
-readiness attempt stays closed/unbound; its consumed processor must never restart.
-New source c98b454b1a9ce9b9a154ad82ef104678ba78b443 packages read-only probe recovery
-and fail-closed lease revocation. Affected tests: **49 passed**, one existing warning.
+Corrected source c98b454b1a9ce9b9a154ad82ef104678ba78b443 completed the separately
+approved exact Portal c58fff86fc8085d3edacaf157c4e6a9d54d525e1 proposal once.
+Adapter-before-standby/API-only activation and fresh leases passed. Normal Builder
+readiness and one confirmation created wf-717110fb8d5e: one training consumed
+epochs2/batch4; one generation consumed its exact new model and produced10x100
+observations. Both tasks completed. Independently reobserved model SHA
+e0cd2151c67a247856bb360fb1aea1525091da26a9a8b002fd66ee0b1d0a7b4d;
+two authenticated output hashes and CSV1,000 rows validated. ML application logs
+corroborate one training, two epochs and one exact-model generation invocation.
+No execution retry, replacement or provider call.
 
-Real probe-only DNS failure/recovery and 24 healthy cycles passed without journal
-mount, live authority, reservation or Worker processing. API-only recreation
-retained adapter identity/start time and did not interrupt that read-only process.
-Full fresh-lease activation/order/rollback uses disposable state, not a live
-standby/execution pass. Startup deadline 30s, probe budget 3s, operation timeout
-1s, poll 1s, lease 6s, standby max 300s. Only pre-binding read-only transient probes
-retry; auth/capability/policy drift fails explicitly. Binding, exact queue recheck
-and execution remain single-attempt.
+Scope pt-supervised-operational-20261116-01 closed at14:55:21.904434Z; named
+processor exited0 and stopped. Flags/config restored; all five workers stopped;
+all four scopes closed, queues without unresolved work. Nine prior saved designs,
+seven earlier jobs/models/artifacts, old failed scope/processor and exhausted
+25/25 ledger preserved. New/historical evidence available after closure.
+Original Portuguese ML unchanged. Earlier failed readiness stays failed.
 
-Portal's single helper stabilizes adapter with API OFF, then one separately
-authorized standby, then enables ONLY API after a fresh lease. No new live scope/
-standby/algorithm created. Three old scopes closed, seven jobs complete, models/
-outputs preserved, provider disconnected, ledger unchanged 25/25. Original ML
-unchanged. Fresh UI Save/refresh/Validate passed; current profile inspection-only.
-
-[Portal PR22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22) records
-exact images, operational-verification-20261116.json and the new
-proposed-supervised-operational-20261116.json. The unchanged frozen request is
-96f346d9e87f5c68bc45b5e35d7c62ad671591a012711d53ef383c50addca00b.
-Remaining decision: separate approval of that completed candidate before one
-new live attempt. No Portuguese-node/production qualification or new scientific
-result claimed. Design with AI stays disconnected; native-only composer excludes
-sidecars/external-input routing. Earlier records below remain historical evidence.
+[Portal PR22](https://github.com/IRESI-EU/ai-effect-solution-studio/pull/22) publishes
+operational-acceptance-20261116-verification.json, rendered results and the
+current-status report. This is evidence-only; existing49 focused tests and
+packaging proofs reused, no code/build change. Next: Portuguese node owner must
+confirm actual endpoint/auth, chosen contract/parameter mapping, data permission
+and node resource envelope before a node-specific supervised demonstration.
+No portability/scientific-quality/production/independent-usability claim.
+Design with AI stays disconnected; sidecar/external-input composition gap remains.
+This scope/processor is consumed: never reopen/restart it.
 <!-- END-CURRENT-OPERATIONAL-STATUS -->
 
 # EXPERIMENTAL Portuguese instance parameters
