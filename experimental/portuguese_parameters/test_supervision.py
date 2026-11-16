@@ -78,7 +78,7 @@ def test_waiting_loop_never_processes_before_binding_then_only_exact_workflow(ch
     processed, probes = [], []
     def sleep(_): gate.bind(chain["operator"], value, WF, "reviewer")
     serve(chain["operator"], value["authorization_id"], lambda: probes.append("checked"), processed.append, sleep=sleep)
-    assert processed == [WF] and len(probes) == 2
+    assert processed == [WF] and len(probes) == 1
     with chain["operator"].db() as db:
         assert db.execute("SELECT state FROM supervised_processors").fetchone()["state"] == "finished"
     assert not chain["calls"]
@@ -115,3 +115,100 @@ def test_supervised_http_requires_separate_opt_in_and_private_auth(chain, monkey
     assert client.post("/control/supervised/bind", json=body).status_code == 200
     assert client.post("/control/supervised/bind", json=body).status_code == 409
     assert not chain["calls"]
+
+
+class Clock:
+    def __init__(self): self.now = 0
+    def monotonic(self): return self.now
+    def sleep(self, seconds): self.now += seconds
+
+
+def test_transient_read_only_startup_recovers_then_processes_exactly_once(chain):
+    from experimental.portuguese_parameters.dependency_probe import TransientProbeError
+    value = prepared(chain); clock = Clock(); probes = []; processed = []
+    def probe():
+        probes.append("GET-only")
+        if len(probes) <= 2: raise TransientProbeError("DNS startup")
+    def sleep(seconds):
+        clock.sleep(seconds)
+        if len(probes) == 3:
+            assert gate.inspect(chain["operator"], value)["status"] == "ready"
+            gate.bind(chain["operator"], value, WF, "test-owner")
+        else:
+            with pytest.raises(ValueError): gate.inspect(chain["operator"], value)
+    serve(chain["operator"], value["authorization_id"], probe, processed.append,
+          wait_seconds=10, startup_seconds=5, sleep=sleep, monotonic=clock.monotonic)
+    assert len(probes) == 3 and processed == [WF]
+    assert not chain["calls"] and not chain["operator"].view()["scoped_jobs"]
+
+
+def test_transient_deadline_blocks_and_never_creates_jobs_or_binding(chain):
+    from experimental.portuguese_parameters.dependency_probe import TransientProbeError
+    value = prepared(chain); clock = Clock()
+    def probe(): raise TransientProbeError("Connection starting")
+    with pytest.raises(ValueError, match="startup deadline"):
+        serve(chain["operator"], value["authorization_id"], probe,
+              lambda _: pytest.fail("No processing"), wait_seconds=10, startup_seconds=3,
+              sleep=clock.sleep, monotonic=clock.monotonic)
+    with pytest.raises(ValueError): gate.inspect(chain["operator"], value)
+    assert chain["operator"].view()["authorizations"][0]["workflow_id"] is None
+    assert not chain["calls"] and not chain["operator"].view()["scoped_jobs"]
+
+
+def test_known_failed_probe_immediately_revokes_old_healthy_lease(chain):
+    from experimental.portuguese_parameters.dependency_probe import TransientProbeError
+    value = ready(chain)
+    def fail(): raise TransientProbeError("DNS")
+    with pytest.raises(TransientProbeError):
+        gate.heartbeat(chain["operator"], value["authorization_id"], "worker-one", fail)
+    with pytest.raises(ValueError, match="processing is unavailable"): gate.inspect(chain["operator"], value)
+    assert not chain["calls"]
+
+
+def test_permanent_failure_and_policy_drift_do_not_retry(chain):
+    from experimental.portuguese_parameters.dependency_probe import PermanentProbeError
+    value = prepared(chain); probes = []
+    def fail():
+        probes.append(1); raise PermanentProbeError("Adapter authentication rejected")
+    with pytest.raises(PermanentProbeError, match="authentication"):
+        serve(chain["operator"], value["authorization_id"], fail, lambda _: pytest.fail("No execution"))
+    assert probes == [1] and not chain["calls"]
+
+
+def test_no_retry_or_second_process_after_binding_or_uncertain_processing(chain):
+    value = prepared(chain); clock = Clock(); calls = []
+    def sleep(seconds):
+        clock.sleep(seconds); gate.bind(chain["operator"], value, WF, "test-owner")
+    def process(wf):
+        calls.append(wf); raise RuntimeError("Uncertain processing double")
+    with pytest.raises(RuntimeError, match="Uncertain"):
+        serve(chain["operator"], value["authorization_id"], lambda: None, process,
+              sleep=sleep, monotonic=clock.monotonic)
+    assert calls == [WF] and not chain["calls"]
+
+
+def test_policy_drift_stops_before_another_probe_or_processing(chain):
+    value = prepared(chain); probes = []
+    def probe(): probes.append(1)
+    def sleep(_):
+        with chain["operator"].db() as db:
+            db.execute("UPDATE authorizations SET policy_sha256=?", ("0"*64,))
+    with pytest.raises(ValueError, match="policy drift"):
+        serve(chain["operator"], value["authorization_id"], probe,
+              lambda _: pytest.fail("No execution"), sleep=sleep)
+    assert probes == [1] and not chain["calls"]
+
+
+def test_probe_only_cli_never_constructs_authority_or_processor(tmp_path, monkeypatch, capsys):
+    from experimental.portuguese_parameters import supervised_worker as module
+    from types import SimpleNamespace
+    token=tmp_path/"token";token.write_text("test-token")
+    monkeypatch.setattr("sys.argv",["probe","--probe-only"])
+    monkeypatch.delenv("PT_SANDBOX_SUPERVISED",raising=False)
+    for key,value in {"REDIS_URL":"redis://offline","PT_SANDBOX_TOKEN_FILE":str(token),"PT_SANDBOX_UPSTREAM":"http://ml","PT_SANDBOX_MODEL_PROOF_URL":"http://observer","PT_SANDBOX_SELF_URL":"http://adapter"}.items():monkeypatch.setenv(key,value)
+    monkeypatch.setitem(__import__('sys').modules,"redis",SimpleNamespace(Redis=SimpleNamespace(from_url=lambda *a,**kw:object())))
+    def forbidden(*a,**kw):pytest.fail("No journal authority or processor construction")
+    monkeypatch.setattr(module,"AuthorizationOperator",forbidden)
+    calls=[];monkeypatch.setattr(module,"dependency_probe",lambda *a,**kw:calls.append("read-only"))
+    module.main()
+    assert calls==["read-only"] and '"algorithm_reservations": 0' in capsys.readouterr().out

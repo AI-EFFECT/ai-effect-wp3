@@ -31,7 +31,14 @@ def register(operator, identity, worker):
 
 
 def heartbeat(operator, identity, worker, probe, *, now=None):
-    probe()  # Redis + private inspection endpoints; no queue pop / execute.
+    try:
+        probe()  # Redis + private inspection endpoints; no queue pop / execute.
+    except Exception:
+        # A previously healthy lease must not survive a known failed probe.
+        with operator.db() as db:
+            db.execute("UPDATE supervised_processors SET lease_until=0 WHERE authorization_id=? AND worker_id=? AND state='waiting'",
+                       (identity, worker))
+        raise
     now = time.time() if now is None else now
     with operator.db() as db:
         db.execute("BEGIN IMMEDIATE")
