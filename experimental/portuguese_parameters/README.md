@@ -39,6 +39,33 @@ with existing verified local CSV handouts. No new code/build/algorithm/grant.
 Next Design with AI work is proposed only: one explicitly registered Portuguese
 workflow, declared instance parameters and required authorized CSV, handed to
 the existing validated Builder. No global sidecar/external-input composer change.
+### Later Portal-only integration — no new algorithms
+
+The Portal review now provides an owner-authorized **Download generated CSV** for
+wf-717110fb8d5e. Actual browser download revalidated41,826 bytes and the original
+SHA553c7acca074de4dde804dfcf4af25f23252987df79dc31f20da39f6bbb05540 with workers
+stopped. Generic arbitrary remote previews stay blocked; no adapter token is exposed.
+
+One explicit reviewer-scoped experimental registration now supports Design with AI
+recommendation/configuration of this chain. Deterministic recommendation tests are
+isolated; the running application has no fake provider response or connected key.
+Actual UI Create/CSV/2-4-20 proposal/Apply/Undo/reapply/Save/refresh/Builder/Validate
+passed on a new independent, unexecuted design. The native-only generic composer
+still rejects sidecars and external inputs. This is operator-approved local design
+authority, not Portuguese-owner approval, a shared publication or an execution grant.
+
+All ten previous saved designs, nine completed journal jobs/output hashes, four
+closed scopes/audit,56 retained container names/mounts and the25/25 ledger remain
+unchanged. Five workers remain stopped, supervision/provider OFF. Original ML,
+adapter and worker source/images unchanged; only Portal API/web and its design
+registration updated. No new WP3 runtime test/build is claimed for this note.
+
+See [Portal integration report](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/codex/portuguese-parameter-sandbox/docs/PORTUGUESE_DESIGN_AI_INTEGRATION_2026-11-16.md)
+and [sanitized browser/package verification](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/codex/portuguese-parameter-sandbox/deploy/portuguese_sandbox/design-ai-integration-verification-20261116.json).
+Genuine-provider acceptance needs a frozen reviewed case/registration and supported
+separate spending/accounting allocation; this pass leaves accounting exhausted and
+unmodified. Portuguese-node owner/deployment qualification, independent usability,
+scientific suitability and production compatibility remain unverified.
 <!-- END-CURRENT-OPERATIONAL-STATUS -->
 
 # EXPERIMENTAL Portuguese instance parameters
