@@ -110,6 +110,7 @@ def test_supervised_http_requires_separate_opt_in_and_private_auth(chain, monkey
     assert check.status_code == 200
     body = {"request": value, "workflow_id": WF, "policy_sha256": "0" * 64}
     assert client.post("/control/supervised/bind", json=body).status_code == 409
+    assert client.post("/control/supervised/bind", json={**body, "policy_sha256": None}).status_code == 409
     body["policy_sha256"] = check.json()["policy_sha256"]
     assert client.post("/control/supervised/bind", json=body).status_code == 200
     assert client.post("/control/supervised/bind", json=body).status_code == 409

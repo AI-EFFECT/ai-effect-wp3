@@ -243,6 +243,9 @@ def create_app(sandbox):
             if action == "check":
                 return supervision.inspect(operator, value)
             if action == "bind" and set(value) == {"request", "workflow_id", "policy_sha256"}:
+                import re
+                if not isinstance(value["policy_sha256"], str) or not re.fullmatch(r"[a-f0-9]{64}", value["policy_sha256"]):
+                    raise ValueError("Exact reviewed policy hash required")
                 return supervision.bind(operator, value["request"], value["workflow_id"],
                                         "portal-supervised/" + sandbox.policy["owner_id"], expected_policy_sha256=value["policy_sha256"])
             raise ValueError("Unsupported supervised action")
