@@ -214,3 +214,47 @@ are in existing draft PR #22. This WP3 follow-up changes documentation only;
 no claim of a fresh WP3 test run is made. Scientific suitability, partner approval
 and hosted production compatibility remain unverified. No further execution is
 authorized by this record.
+
+### Supervised boundary preparation — 2026-11-16 (disabled)
+
+Source/tests: `183b533ed23de7c77fb9e5a4712033e72f1ce6a5`; strict binding
+policy check: `822c05cf1cac09c9448f423a1359369b6fc61aac`.
+The existing workflow-ID worker cannot prove pre-submission capacity. The new
+experimental supervised_worker waits for one **already prepared** authorization,
+uses the same journal and maintained Worker/WorkflowEngine, probes Redis and
+read-only dependencies, and publishes a six-second waiting lease. No readiness
+probe consumes a queue, binds a workflow, reserves a job or runs an algorithm.
+
+supervision.py adds only the per-authorization processor identity/lease table.
+Registration, one-time binding and processor claim are transactional; a closed,
+expired, consumed or interrupted processor is not automatically replaced. The
+private authenticated check/bind routes require PT_SANDBOX_SUPERVISED=1; binding
+also requires the exact reviewed policy hash. Existing canonical parameter and
+model-reference protocols, grants/jobs/audit history and upstream mappings are
+unchanged. No new protocol, scheduling daemon or original-service edit.
+
+The Portal admission path uses the same frozen policy, exact saved request and
+durable ExecutionSubmission before dispatch. It checks actual waiting capacity
+again at submission, binds only the returned recorded workflow once, and retains
+uncertainty without resubmission. The existing per-task adapter reservation still
+precedes any upstream call. Concurrent bind/claim tests do not establish hosted
+PostgreSQL admission concurrency or distributed exactly-once processing.
+
+64 focused experimental tests passed with network/algorithm doubles; the final
+12 supervision tests also passed after strict policy-hash validation. These
+verify boundary behavior, not new ML/scientific execution. The offline WP3
+packager includes the standby beside the existing CLI; new image builds and
+runtime import smoke checks remain **blocked** by the missing Desktop Linux
+engine pipe. No profile or image was updated, no scope created and no worker
+started. The current retained flags remain absent/disabled; all previous scopes
+remain closed in the last live record. Their current Docker-held state cannot
+be freshly verified while the engine is unavailable.
+
+[Portal preparation report and pending fresh browser acceptance](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/862c42dd471c76be3dc27d11d8c29b2d6a0304fe/docs/PORTUGUESE_SUPERVISED_PREPARATION_2026-11-16.md)
+and [operator/closure runbook](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/862c42dd471c76be3dc27d11d8c29b2d6a0304fe/deploy/portuguese_sandbox/SUPERVISED_RUNBOOK.md)
+define the next proposal: one training at epochs 2/batch 4, then one generation
+of ten 100-observation sequences using the new model. It requires restored review
+components, pinned builds, fresh UI Save/refresh/Validate, exact request freeze
+and separate explicit execution approval. It is not authorized by this record.
+Provider ledger remains byte-identical at 25/25. No new workflow, algorithm,
+provider call, partner-native approval, node or production readiness is claimed.
