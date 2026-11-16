@@ -1,6 +1,23 @@
 <!-- CURRENT-OPERATIONAL-STATUS -->
 ## Current operational status — supervised local PASS; scope CLOSED
 
+Latest Portal-only provider session: all three frozen behavioral cases PASS;
+overall PARTIAL because full provider wire payload/returned model metadata was
+not retained. Portal [7a8c9c3dfaf1629d8cb20a8addcb2008d73bd654 results](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/7a8c9c3dfaf1629d8cb20a8addcb2008d73bd654/docs/PORTUGUESE_PROVIDER_ACCEPTANCE_RESULTS_2026-11-16.md)
+record three genuine Luna requests: registered recommendation;2/4/20 proposal
+with explicit CSV, Apply/Save/refresh/Builder/Validate; separate unanswered
+ambiguity clarification with no mutation. Conservative charge USD0.001834000;
+usage-priced estimate USD0.001310755 (invoice unverified). Original authority
+28/28, scope3/3 closed, zero outstanding; original25 records/audit preserved.
+The authorized temporary API-only egress/CA setup passed DNS/TLS/nonce/status,
+then original internal-only API configuration was restored. Provider disconnected,
+native authority stopped gracefully after10.5minutes, workers stopped, supervision
+OFF. No algorithm, workflow, execution scope, WP3 runtime/image or original ML
+change. All11 prior saved designs, nine jobs and four execution scopes preserved.
+New saved design28f62cd4-27c4-4e8d-a933-489e66530389 has no results. This maintained
+commit is evidence documentation only; no repeated tests/builds or hosted/production
+qualification claim. Earlier preparation and runtime checkpoints below stay intact.
+
 Corrected source c98b454b1a9ce9b9a154ad82ef104678ba78b443 completed the separately
 approved exact Portal c58fff86fc8085d3edacaf157c4e6a9d54d525e1 proposal once.
 Adapter-before-standby/API-only activation and fresh leases passed. Normal Builder
