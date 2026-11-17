@@ -1,0 +1,149 @@
+[
+  {
+    "id": "pt-chain-generate-v2",
+    "service_id": "pt-experimental-chain-GenerateData",
+    "operation_identity": "urn:aieffect:experimental:portuguese:generate-data",
+    "runtime_operation_name": "GenerateData",
+    "contract_version": "0.2.0",
+    "schema_version": "1.0",
+    "source_kind": "demo",
+    "source_reference": "https://github.com/AI-EFFECT/ai-effect-wp3/tree/codex/portuguese-parameter-sandbox/experimental/portuguese_parameters",
+    "definition": {
+      "operation_role": "adapter",
+      "binding_transport": "whole-output-v1",
+      "inputs": [
+        {
+          "min_cardinality": 1,
+          "max_cardinality": 1,
+          "name": "model_ref",
+          "semantic_concept": "urn:aieffect:experimental:pt:model_ref",
+          "value_representation": "data_reference",
+          "data_reference_protocols": [
+            "http"
+          ],
+          "content_types": [
+            "application/json"
+          ],
+          "schema_ref": "urn:aieffect:experimental:pt:model-reference:2",
+          "compatibility_notes": [],
+          "required": true,
+          "source_requirement": "upstream_operation"
+        }
+      ],
+      "outputs": [
+        {
+          "min_cardinality": 1,
+          "max_cardinality": 1,
+          "name": "sequences",
+          "semantic_concept": "urn:aieffect:experimental:pt:sequences",
+          "value_representation": "data_reference",
+          "data_reference_protocols": [
+            "http"
+          ],
+          "content_types": [
+            "text/csv"
+          ],
+          "schema_ref": "urn:aieffect:experimental:pt:sequences-csv:1",
+          "compatibility_notes": []
+        }
+      ],
+      "adapter_capabilities": [],
+      "compatibility_notes": [
+        "Platform-controlled experimental sidecar, not partner-native or owner-approved. Whole reference forwarding only; no fetching arbitrary URLs or projections."
+      ],
+      "execution_parameters": {
+        "schema_version": "1.0",
+        "transport": "http-parameters-v1",
+        "properties": {
+          "number_of_examples": {
+            "type": "integer",
+            "title": "Generated sequences",
+            "description": "Number of time-series sequences; each contains 100 observations in this sandbox.",
+            "required": false,
+            "default": 10,
+            "minimum": 1.0,
+            "maximum": 20.0
+          }
+        }
+      }
+    }
+  },
+  {
+    "id": "pt-chain-train-v2",
+    "service_id": "pt-experimental-chain-TrainModel",
+    "operation_identity": "urn:aieffect:experimental:portuguese:train-model",
+    "runtime_operation_name": "TrainModel",
+    "contract_version": "0.2.0",
+    "schema_version": "1.0",
+    "source_kind": "demo",
+    "source_reference": "https://github.com/AI-EFFECT/ai-effect-wp3/tree/codex/portuguese-parameter-sandbox/experimental/portuguese_parameters",
+    "definition": {
+      "operation_role": "adapter",
+      "binding_transport": "whole-output-v1",
+      "inputs": [
+        {
+          "min_cardinality": 1,
+          "max_cardinality": 1,
+          "name": "dataset_ref",
+          "semantic_concept": "urn:aieffect:experimental:pt:dataset_ref",
+          "value_representation": "data_reference",
+          "data_reference_protocols": [
+            "inline"
+          ],
+          "content_types": [
+            "application/json"
+          ],
+          "schema_ref": "urn:aieffect:experimental:pt:dataset-reference:1",
+          "compatibility_notes": [],
+          "required": true,
+          "source_requirement": "workflow_input"
+        }
+      ],
+      "outputs": [
+        {
+          "min_cardinality": 1,
+          "max_cardinality": 1,
+          "name": "model_ref",
+          "semantic_concept": "urn:aieffect:experimental:pt:model_ref",
+          "value_representation": "data_reference",
+          "data_reference_protocols": [
+            "http"
+          ],
+          "content_types": [
+            "application/json"
+          ],
+          "schema_ref": "urn:aieffect:experimental:pt:model-reference:2",
+          "compatibility_notes": []
+        }
+      ],
+      "adapter_capabilities": [],
+      "compatibility_notes": [
+        "Platform-controlled experimental sidecar, not partner-native or owner-approved. Whole reference forwarding only; no fetching arbitrary URLs or projections."
+      ],
+      "execution_parameters": {
+        "schema_version": "1.0",
+        "transport": "http-parameters-v1",
+        "properties": {
+          "epochs": {
+            "type": "integer",
+            "title": "Training epochs",
+            "description": "Sandbox limit, not a scientific recommendation.",
+            "required": false,
+            "default": 1,
+            "minimum": 1.0,
+            "maximum": 2.0
+          },
+          "batch_size": {
+            "type": "integer",
+            "title": "Batch size",
+            "description": "Upstream clamps to the number of training sequences.",
+            "required": false,
+            "default": 4,
+            "minimum": 2.0,
+            "maximum": 16.0
+          }
+        }
+      }
+    }
+  }
+]
