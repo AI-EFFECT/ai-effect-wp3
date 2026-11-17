@@ -1,4 +1,37 @@
 <!-- CURRENT-OPERATIONAL-STATUS -->
+## Current review handoff — 17 November 2026
+
+Local parameterisation and bounded Design with AI behavior verified; provider audit evidence remains partial; independent usability and code review remain outstanding.
+
+The [ten-minute colleague walkthrough](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/c0b9405657a3c64ba2b570cecb3c973ba1bcfb7e/docs/PORTUGUESE_HUMAN_WALKTHROUGH_2026-11-17.md)
+and [blank observation sheet](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/c0b9405657a3c64ba2b570cecb3c973ba1bcfb7e/docs/PORTUGUESE_HUMAN_OBSERVATIONS_2026-11-17.md)
+are **READY, NOT YET PERFORMED**. Saved2/4/20 design28f62cd4-27c4-4e8d-a933-489e66530389
+has no results; historical completed wf-717110fb8d5e is its own2/4/10 run.
+Agent read-only browser inspection and the historical CSV download/hash passed.
+Nine journal jobs/four closed scopes, queues,56 containers/images/mounts and
+historical designs/evidence remain. Workers stopped, supervision OFF, provider
+disconnected, authority stopped, ledger28/28 closed with zero outstanding.
+
+Portal source-only audit change b1fcd8e80d9d045357aa3fa0788251ebaabd8112 extends
+the existing opt-in private logger with separately labelled requested/returned
+model/tier, available IDs/numeric counters, sanitized validated response, hashes
+and conversation/revision/accounting-permit correlation.45 offline Portal checks,
+seven mocked rendered-page checks and typecheck passed. Historical provider
+acceptance stays PARTIAL; no missing metadata was reconstructed or call repeated.
+No new WP3 code/test/build, algorithm, scope, image or serving change in this pass.
+
+[Review boundaries, actual serving IDs and rollback](https://github.com/IRESI-EU/ai-effect-solution-studio/blob/c0b9405657a3c64ba2b570cecb3c973ba1bcfb7e/docs/PORTUGUESE_REVIEW_HANDOFF_2026-11-17.md).
+Review maintained WP3 PR3 before PR4 and Portal PR21 before PR22; review dependent
+runtime/Portal boundaries together before any future execution deployment.
+Owner must still confirm Portuguese deployment/family, endpoint/auth, data
+permission, parameter semantics and resource envelope for node qualification.
+Original Portuguese APIs/ML remain unchanged; sandbox bounds and CSV are local
+choices, not partner attestation. No production/portability/scientific claim.
+<!-- END-CURRENT-OPERATIONAL-STATUS -->
+
+## Historical operational checkpoint at e35cad7 — preserved
+
+<!-- HISTORICAL-OPERATIONAL-STATUS -->
 ## Current operational status — supervised local PASS; scope CLOSED
 
 Latest Portal-only provider session: all three frozen behavioral cases PASS;
@@ -102,7 +135,7 @@ four closed scopes, queues,56 retained containers and ledger remain unchanged.
 Provider disconnected, supervision OFF and workers stopped. No new algorithm,
 grant, live draft or WP3 runtime/source/image change. This maintained commit is
 documentation only; no new WP3 tests/builds or Portuguese-hosted qualification.
-<!-- END-CURRENT-OPERATIONAL-STATUS -->
+<!-- END-HISTORICAL-OPERATIONAL-STATUS -->
 
 # EXPERIMENTAL Portuguese instance parameters
 
