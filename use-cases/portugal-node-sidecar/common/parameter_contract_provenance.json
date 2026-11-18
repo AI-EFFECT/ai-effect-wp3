@@ -1,0 +1,7 @@
+{
+  "owner": "Solution Studio Operation Contract Registry",
+  "source": "apps/api/app/services/parameter_values.py",
+  "validator_version": "1.0",
+  "sha256": "1861736c1bd9c8a1e4d3aa86b1a2f58ef27bf5e272d682a619062cfb8b7171aa",
+  "note": "Exact vendored release artifact; regenerate with deploy/aie18/sync_wp3_contract.py, do not edit independently"
+}

@@ -21,11 +21,12 @@ from __future__ import annotations
 
 import logging
 import os
+import secrets
 from typing import Callable
 
 import uvicorn
-from fastapi import APIRouter, FastAPI, HTTPException, Response
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Response
+from pydantic import BaseModel, Field, model_validator
 
 from .task_manager import task_manager
 
@@ -52,7 +53,16 @@ class ExecuteRequest(BaseModel):
     method: str
     workflow_id: str
     task_id: str
-    inputs: list[dict] = []
+    inputs: list[dict] = Field(default_factory=list)
+    configuration: dict | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def explicit_configuration(cls, value):
+        if isinstance(value, dict) and "configuration" in value:
+            if not isinstance(value["configuration"], dict) or set(value) - {"method", "workflow_id", "task_id", "inputs", "configuration"}:
+                raise ValueError("Configured requests require one explicit configuration envelope, without legacy parameters")
+        return value
 
 
 class ExecuteResponse(BaseModel):
@@ -99,10 +109,36 @@ def create_control_router(
     Returns:
         FastAPI APIRouter with /control/* endpoints.
     """
+    from .configured_synthetic import Runtime
+    configured = Runtime.from_environment(execute_handlers)
     router = APIRouter()
 
-    @router.post("/execute", response_model=ExecuteResponse)
+    def authorize(authorization: str = Header(default="")):
+        token = os.environ.get("SERVICE_API_KEY", "")
+        if token and not secrets.compare_digest(authorization, "Bearer " + token):
+            raise HTTPException(401, "Control service authorization required")
+
+    def configured_runtime():
+        if configured is None or not os.environ.get("SERVICE_API_KEY"):
+            raise HTTPException(409, "Install reviewed parameter exports and a private Control key before configured execution")
+        return configured
+
+    @router.get("/capabilities", dependencies=[Depends(authorize)])
+    def capabilities():
+        return configured_runtime().capabilities()
+
+    @router.get("/receipt/{task_id}", dependencies=[Depends(authorize)])
+    def receipt(task_id: str):
+        return configured_runtime().read(task_id)
+
+    @router.post("/execute", response_model=ExecuteResponse, dependencies=[Depends(authorize)])
     def execute(request: ExecuteRequest) -> ExecuteResponse:
+        if "configuration" in request.model_fields_set:
+            return ExecuteResponse(**configured_runtime().submit(request))
+        if configured is not None and (request.task_id.startswith("cfg-") or any(
+            operation["operation_name"] == request.method for operation in configured.capabilities()["operations"]
+        )):
+            raise HTTPException(422, "This installed operation requires its reviewed configuration envelope")
         logger.info(f"Execute: method={request.method}, task={request.task_id}")
 
         handler = execute_handlers.get(request.method)
@@ -128,8 +164,12 @@ def create_control_router(
             task_manager.register(request.task_id, status="failed", error=str(e))
             return ExecuteResponse(status="failed", error=str(e), task_id=request.task_id)
 
-    @router.get("/status/{task_id}", response_model=StatusResponse)
+    @router.get("/status/{task_id}", response_model=StatusResponse, dependencies=[Depends(authorize)])
     def status(task_id: str) -> StatusResponse:
+        if task_id.startswith("cfg-"):
+            value = configured_runtime().read(task_id)
+            return StatusResponse(status="running" if value["state"] in {"queued", "running"} else "failed" if value["state"] == "uncertain" else value["state"],
+                                  progress=100 if value["state"] == "complete" else 0, error=value.get("error"))
         task = task_manager.get_status(task_id)
         if task is None:
             raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
@@ -140,8 +180,12 @@ def create_control_router(
             error=task.get("error"),
         )
 
-    @router.get("/output/{task_id}", response_model=OutputResponse)
+    @router.get("/output/{task_id}", response_model=OutputResponse, dependencies=[Depends(authorize)])
     def output(task_id: str) -> OutputResponse:
+        if task_id.startswith("cfg-"):
+            value = configured_runtime().read(task_id)
+            if value["state"] != "complete": raise HTTPException(409, "Configured output is not complete")
+            return OutputResponse(output=DataReference(**value["output"]))
         task = task_manager.get_status(task_id)
         if task is None:
             raise HTTPException(status_code=404, detail=f"Task not found: {task_id}")
@@ -155,9 +199,16 @@ def create_control_router(
 
         return OutputResponse(output=output)
 
-    @router.get("/data/{task_id}")
+    @router.get("/data/{task_id}", dependencies=[Depends(authorize)])
     def get_data(task_id: str) -> Response:
         """Serve raw data for HTTP URL references."""
+        if task_id.startswith("cfg-"):
+            runtime = configured_runtime(); value = runtime.read(task_id)
+            if value["state"] != "complete": raise HTTPException(409, "Configured data is not complete")
+            data = runtime.path(task_id, "data").read_bytes()
+            import hashlib
+            if hashlib.sha256(data).hexdigest() != value["output_sha256"]: raise HTTPException(409, "Configured output changed after completion")
+            return Response(content=data, media_type=_get_content_type(value["output"]["format"]))
         result = task_manager.get_data(task_id)
         if result is None:
             raise HTTPException(status_code=404, detail=f"Data not found: {task_id}")
