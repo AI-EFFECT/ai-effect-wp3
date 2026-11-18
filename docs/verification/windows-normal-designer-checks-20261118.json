@@ -1,0 +1,17 @@
+{
+  "boundary": "Fresh Windows check results; model and browser evidence are separate from tests",
+  "portal_observation_owned_csv_assistant": {"passed": 64, "doubles": "Explicit observation/provider doubles where labelled"},
+  "portal_parameter_onboarding_compatibility_discovery_instances": {"passed": 63, "initial_source_path_skip": 1},
+  "source_snapshot_rerun_with_wp3_path": {"passed": 1, "resolves_initial_skip": true},
+  "older_csv_preflight_capabilities": {"passed": 2, "doubles": "Explicit HTTP response doubles; no dispatch"},
+  "existing_native_instance_evidence": {"passed": 16},
+  "portal_verified_checks_total": 146,
+  "wp3_source_observation_control_client_configuration": {"passed": 106, "doubles": "Real source API with explicit DGAN double; observation contract fixtures"},
+  "rendered_csv_results_assistant_components": {"passed": 9, "additional_submitted_settings_module_assertions": true},
+  "next_production_build_including_typescript": "passed",
+  "canonical_parameter_validator_all_five_exports": "passed",
+  "frozen_source_hash_manifest": "windows-normal-designer-source-20261118.json",
+  "fresh_real_model_browser_workflows": ["wf-c155a6dd6853", "wf-6066f56dcf4b"],
+  "paid_provider_calls": 0,
+  "limitations": ["No scientific provider acceptance", "No unaided human acceptance", "No PostgreSQL/staging/release acceptance", "No genuine paid conversation acceptance"]
+}

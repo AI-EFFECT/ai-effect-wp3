@@ -1,0 +1,170 @@
+{
+  "portal_baseline": "744df92b04a1a6361491085995be95dfc82eb985",
+  "wp3_code_commit": "cbe1bbd8064dbd57655d28073bfec622aebbd752",
+  "wp3_code_tree": "463d07484c65f1e7fb28a5143fb3e2d19e4c2c6c",
+  "frontend_source_sha256": "8d49ec7749a9a121200a1dc3f430cfbe1011a4233319a612d82e424371d29991",
+  "frozen_serving_source_sha256": {
+    "orchestrator/src/main.py": {
+      "serving_sha256": "4b291a3b49c50580aa88eebc9721c89f4715326f13e40ba6c3f2d5e6e93f8729",
+      "committed_sha256": "d936d5e1028cdc6d4a27ed635404db9f2e88de3c1d7ba82266f1614213b62e33"
+    },
+    "orchestrator/src/worker_cli.py": {
+      "serving_sha256": "ac7e683265d9434803c925406f8c0ea83466651511ba18d968df7cd43cdd5e57",
+      "committed_sha256": "e56eea10de38c956e6fae1dad3c0c2f5ecd41dc57ac36c4faddbb6dbc1934faa"
+    },
+    "orchestrator/src/worker_daemon.py": {
+      "serving_sha256": "87a773ce2554eb52e9558971a6f1bdded239dcdd3a4c03c8a1de1ea69d6921e8",
+      "committed_sha256": "3d4be1c2af445054f4444a254b8f30bf0d3bc83df2b57f0f4c3d4326a6d1b42d"
+    },
+    "orchestrator/src/__init__.py": {
+      "serving_sha256": "d161ca4d5918a2b422b37ac5a317681571b589826ea4b7be0bb0077d432959be",
+      "committed_sha256": "d161ca4d5918a2b422b37ac5a317681571b589826ea4b7be0bb0077d432959be"
+    },
+    "orchestrator/src/api/app.py": {
+      "serving_sha256": "b3232d922040f2f6331405bfc55ab5291f54f182163d88270c4c5096ece9d1aa",
+      "committed_sha256": "9dba9a504ca740d1d96c79a351757dc5ea034d468af586c66b0cb24f3a81c5fb"
+    },
+    "orchestrator/src/api/models.py": {
+      "serving_sha256": "bc36b7c33d8a263459c2cd99fb74629104586a85f5c25e4268b84c379874cc5f",
+      "committed_sha256": "1c232eaa12f5a6b4d17e88caa1a1decedf554fe4ca2461bb37bfbfafa8188779"
+    },
+    "orchestrator/src/api/__init__.py": {
+      "serving_sha256": "d9ac99e32eddd245b6da0f163ee55c7134ea0debae134a777170aedbb52f2649",
+      "committed_sha256": "3924bf9e65358968496f526c4935ea6a79ff3e7524fbb9c8a2d902400d88820f"
+    },
+    "orchestrator/src/models/data_reference.py": {
+      "serving_sha256": "975da96d26c3073c692cfb0a8b55980842b4ce94a4b1bbe3b44ab87f040e1b38",
+      "committed_sha256": "66d075567d881ba53a5f30b8c0abc54201e44de41ee1a9aa30cd7eeafbf52ebe"
+    },
+    "orchestrator/src/models/graph.py": {
+      "serving_sha256": "172199bc94cb92de7d357ec612ceac62fc6227d90191ac0542ae0f1c378dc72e",
+      "committed_sha256": "ca9a5874af2ca1dbef585b557e2db6e22d5c32853c6608f35efe3797fd63b1e0"
+    },
+    "orchestrator/src/models/node.py": {
+      "serving_sha256": "66317533a93be8c7e959ee115de34fa8c8551144e567ea304b2b4b1988d465f3",
+      "committed_sha256": "933d3f90d9dc7fd867f8095f3eb368ab1af769427fb91a7539079d17996af254"
+    },
+    "orchestrator/src/models/state.py": {
+      "serving_sha256": "c6c8c86a5fe928766726127852048f6e632f36dd13df2fb5a22c748b926e18b1",
+      "committed_sha256": "044ea2c224f581802491154498ddc74be6bcecb9c47c9334ededd950e4f188fd"
+    },
+    "orchestrator/src/models/__init__.py": {
+      "serving_sha256": "5550350716366133f65e12acbe534e1e3ba3f19636c6c7f9a76c933ee1898039",
+      "committed_sha256": "867ef7eab26cdfc21ae57c3b4744e28a136be929838c14976e257350130bfa87"
+    },
+    "orchestrator/src/services/blueprint_parser.py": {
+      "serving_sha256": "2e93e47e049e06b66eac319e0fffd0cf5f504af6327d221a9ce6e07042341360",
+      "committed_sha256": "518c36fe66da052b5799b72cd9dd0d1811607e689025bb4642858f9338b4986c"
+    },
+    "orchestrator/src/services/configuration_readiness.py": {
+      "serving_sha256": "eec722a6c3c7ebaa022a49a447565d78db32a5ed1a7149c2782837aea1fc9b6d",
+      "committed_sha256": "327e6177cc3ba3fe0f42236424722eeb5c3a615549da6a49c84d5e9a85fb4d0e"
+    },
+    "orchestrator/src/services/control_client.py": {
+      "serving_sha256": "8af34eb5a75d8174fd7a101c42a532b343601970938bf817ee2fbd1a76d35f92",
+      "committed_sha256": "c56087af05021fd81bb093e4371b140bb46422224ea806e16f21222b78b88e59"
+    },
+    "orchestrator/src/services/dockerinfo_parser.py": {
+      "serving_sha256": "acaefb3cd12e232374ed27510db792148ff968227022738865244acc82b7a708",
+      "committed_sha256": "448e3e8ee1ea3b3e73ed1f98ff60134670b96b876e560a7235f2008a23a36c3c"
+    },
+    "orchestrator/src/services/log_service.py": {
+      "serving_sha256": "4be7f91b03d517c8e5d28e926c1397c6e98a5d2abb7120b94113cff938ac442f",
+      "committed_sha256": "2ad98fcb35f4e6bc071c5678f03039b5b416467782ac3ab7f26b1da77836c042"
+    },
+    "orchestrator/src/services/parameter_contract.py": {
+      "serving_sha256": "1861736c1bd9c8a1e4d3aa86b1a2f58ef27bf5e272d682a619062cfb8b7171aa",
+      "committed_sha256": "1861736c1bd9c8a1e4d3aa86b1a2f58ef27bf5e272d682a619062cfb8b7171aa"
+    },
+    "orchestrator/src/services/state_store.py": {
+      "serving_sha256": "8e11c8590a987ecbd1ec6f340e0d9b73a8ff7d02a4c90270f9300f787cff33a6",
+      "committed_sha256": "4bae8d8350c05e180111c34f47e1610ffa9ac15066600aa48e475cded358f6f5"
+    },
+    "orchestrator/src/services/task_queue.py": {
+      "serving_sha256": "789a49583cd2a1b6976d68a503a53f1296584090586d8cfaf6bb8aedb971f576",
+      "committed_sha256": "2b8a69c1704a43c4492805d45cf5313668718e6a894ce1d8f9a23fdb91dd1540"
+    },
+    "orchestrator/src/services/worker.py": {
+      "serving_sha256": "7d77960b82de1783941c29936b252f5023b79b4785822dbee9dd8cf288bf5f8f",
+      "committed_sha256": "306284af79fa44925be77c5df06c227d96b0902a477085fbd1b7c88fce463586"
+    },
+    "orchestrator/src/services/workflow_engine.py": {
+      "serving_sha256": "b0076af0f15a3cdea57929380caa053dc00a0e1f74f1360967608bd2e8dd79d2",
+      "committed_sha256": "980c05cf45e5fd6a39f7ace01452a361fe66878e9ab26d203cac91b907bbaaf1"
+    },
+    "orchestrator/src/services/__init__.py": {
+      "serving_sha256": "e2958a7d29c690ececcbee9071e7cdf69f58d4a4427c382f2268f1c8e5a225d6",
+      "committed_sha256": "ca43df77a89039a6b8ed59863bb32e5c03733fea03012297eac9d039bbc9c5e5"
+    },
+    "orchestrator/src/utils/__init__.py": {
+      "serving_sha256": "a50574212694e9c8c8e752e5eed6cf110a262ea64ec223b159447513cabc818c",
+      "committed_sha256": "a50574212694e9c8c8e752e5eed6cf110a262ea64ec223b159447513cabc818c"
+    },
+    "use-cases/portugal-node-sidecar/common/configured_synthetic.py": {
+      "serving_sha256": "5a4fccf0012e09a7ab9bedc503cc24d4bf117ba2b1cba3fe2d5a8cc31fc8cd41",
+      "committed_sha256": "5a4fccf0012e09a7ab9bedc503cc24d4bf117ba2b1cba3fe2d5a8cc31fc8cd41"
+    },
+    "use-cases/portugal-node-sidecar/common/control_interface.py": {
+      "serving_sha256": "e9fc8b59c103f46f05e3af0573f4d64889defec164b0c0cc0dcd8909970b30a0",
+      "committed_sha256": "d0cc16e77aa6f2385523ab5604dfef34b9a34e04ee938214af169ff4b8c4a876"
+    },
+    "use-cases/portugal-node-sidecar/common/parameter_contract.py": {
+      "serving_sha256": "3d6212b9468caf6646442cb0b9e5064c18305f3cffbd92c68e8614e230bf8ef8",
+      "committed_sha256": "1861736c1bd9c8a1e4d3aa86b1a2f58ef27bf5e272d682a619062cfb8b7171aa"
+    },
+    "use-cases/portugal-node-sidecar/common/runtime_observation.py": {
+      "serving_sha256": "816fcdb01bc44943172703b234c5fe4cc5a0b3c6a4a39984359d669e1ce57599",
+      "committed_sha256": "816fcdb01bc44943172703b234c5fe4cc5a0b3c6a4a39984359d669e1ce57599"
+    },
+    "use-cases/portugal-node-sidecar/common/task_manager.py": {
+      "serving_sha256": "ca2de87aa88fb7eac631dee5c1ebd8bc1bb682081683e80d71c57989f02be796",
+      "committed_sha256": "20442618e15293c1c621e34ab193315550fd6627138210307163082614ff8585"
+    },
+    "use-cases/portugal-node-sidecar/common/tef_operations.py": {
+      "serving_sha256": "d4175900cce5934b5e7c3cc82b32646631c37fbcd619b56c1f8486bab7482aba",
+      "committed_sha256": "3939f4536fa9dcc540d302d0b6c20b670a9b84d3e5bc2f99679b3cf0b4087239"
+    },
+    "use-cases/portugal-node-sidecar/common/__init__.py": {
+      "serving_sha256": "7dc451a6ac365e4948a45436bdfb654391c63ff14b30c3302a27104e52e9e85b",
+      "committed_sha256": "188b110df8a75c099231d7f8a7136a5366cdd4b4704bdc0ce7c7641907183f74"
+    },
+    "Portal/apps/api/app/services/owned_control_result.py": "265fab5495fe537051ab74a703db2a7a7b7ecfde8d9663171b6336ad1437fe67",
+    "Portal/apps/api/app/services/runtime_observation.py": "816fcdb01bc44943172703b234c5fe4cc5a0b3c6a4a39984359d669e1ce57599",
+    "Portal/deploy/normal_designer_workspace/ml_observer.py": "843ff76e68d58c15429e3d41e85b458593ba80f62376e0e5f59b0500ccd10093",
+    "Portal/deploy/portuguese_qualification/connector.py": "51079cbd4a49d4038e4253791dece9eb5898d53f8140c69c2c25991f2368706a"
+  },
+  "frozen_wp3_matches_committed_source_except_line_endings": true,
+  "line_ending_only_byte_differences": [
+    "orchestrator/src/main.py",
+    "orchestrator/src/worker_cli.py",
+    "orchestrator/src/worker_daemon.py",
+    "orchestrator/src/api/app.py",
+    "orchestrator/src/api/models.py",
+    "orchestrator/src/api/__init__.py",
+    "orchestrator/src/models/data_reference.py",
+    "orchestrator/src/models/graph.py",
+    "orchestrator/src/models/node.py",
+    "orchestrator/src/models/state.py",
+    "orchestrator/src/models/__init__.py",
+    "orchestrator/src/services/blueprint_parser.py",
+    "orchestrator/src/services/configuration_readiness.py",
+    "orchestrator/src/services/control_client.py",
+    "orchestrator/src/services/dockerinfo_parser.py",
+    "orchestrator/src/services/log_service.py",
+    "orchestrator/src/services/state_store.py",
+    "orchestrator/src/services/task_queue.py",
+    "orchestrator/src/services/worker.py",
+    "orchestrator/src/services/workflow_engine.py",
+    "orchestrator/src/services/__init__.py",
+    "use-cases/portugal-node-sidecar/common/control_interface.py",
+    "use-cases/portugal-node-sidecar/common/parameter_contract.py",
+    "use-cases/portugal-node-sidecar/common/task_manager.py",
+    "use-cases/portugal-node-sidecar/common/tef_operations.py",
+    "use-cases/portugal-node-sidecar/common/__init__.py"
+  ],
+  "designer_workflow_ids": [
+    "wf-6066f56dcf4b",
+    "wf-c155a6dd6853"
+  ],
+  "designer_workflow_count_after_invalid_edit": 2
+}

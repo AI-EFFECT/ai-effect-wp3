@@ -1,0 +1,395 @@
+{
+  "date": "2026-11-18",
+  "boundary": "Real local DGAN; normal browser Run as an independent designer account; synthetic software fixture, no scientific partner acceptance",
+  "fixture": {
+    "name": "DEVELOPMENT-SOFTWARE-FIXTURE.csv",
+    "sha256": "ad68eb1be631c27bc794f65a45c37a3897fe54f96d2f0d25d999a65c474b8f5c",
+    "rows": 32,
+    "columns": [
+      "datetime",
+      "load",
+      "temperature"
+    ],
+    "index": "datetime",
+    "finite_numeric_features": true
+  },
+  "runs": [
+    {
+      "label": "first-run",
+      "workflow_id": "wf-c155a6dd6853",
+      "solution_id": "aef401a4-80f7-427e-8ebe-75a52a1d33cc",
+      "submission_id": "a093ed47-f667-4300-9639-0131b4481b30",
+      "submitted_sha256": "170d6d31ef63af831d85d1ac8f864e69be8f550470203dc9e3a337f11cf9502b",
+      "selected_file": "DEVELOPMENT-SOFTWARE-FIXTURE.csv",
+      "tasks": [
+        {
+          "task_id": "task_546fc74d",
+          "physical_task_id": "cfg-8fe22581b70499ea8a54a5dab7a8a07c501165d491f62494c720be1d9b995a05",
+          "instance_id": "service-dev-fixture-129cff6ae65642b1baecdef0411201fe-f8b9e1af-6a06-48cc-96f9-bb478127f49c",
+          "operation": "TrainModel",
+          "configuration": {
+            "contract_id": "9fa3a3a9-09df-4e18-93a4-b68dc4392e9e",
+            "contract_version": "1.0.0",
+            "instance_id": "service-dev-fixture-129cff6ae65642b1baecdef0411201fe-f8b9e1af-6a06-48cc-96f9-bb478127f49c",
+            "operation_identity": "urn:development-software-fixture:trainmodel",
+            "parameters": {
+              "batch_size": 16,
+              "epochs": 1,
+              "sequence_len": 4
+            },
+            "schema_version": "1.0"
+          },
+          "configuration_sha256": "0be65b36a035d5152907f1ae7547733837c8ec1177228fdc09ccbb91128bf191",
+          "parameter_contract_sha256": "89047a93dafd538dcfd2c248c12eebae6dcaf864b92cf467bec3242cda994e48",
+          "requested_parameters": {
+            "batch_size": 16,
+            "epochs": 1,
+            "sequence_len": 4
+          },
+          "delivered_parameters": {
+            "batch_size": 16,
+            "epochs": 1,
+            "sequence_len": 4
+          },
+          "observed_parameters": {
+            "batch_size": 8,
+            "epochs": 1,
+            "sequence_len": 4
+          },
+          "model": {
+            "sha256": "6a5579cc5a4a333ab216d6ea9846ccdacfb4aadf6f2c75f532030c44228eecad",
+            "weight_elements": 510707,
+            "weights_sha256": "4fef7b1d3377c39bd41e9ed233476ad34261780ccf5a2d4a40318a4d08f05d51"
+          },
+          "reloaded_model_configuration_sha256": "eb5d102b8f1fc95c92b37ee3fd6268c01f4d93a21fb07a7c995298dd10895894",
+          "reloaded_model_configuration": {
+            "epochs": 1,
+            "batch_size": 8,
+            "max_sequence_len": 4
+          },
+          "implementation": {
+            "image_sha256": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+            "name": "gretel_synthetics.timeseries_dgan.dgan.DGAN",
+            "source_sha256": "0a027576bb25656e4541dd822bf0f2395a79bb1cb377e1d11fb509dca9f79d54"
+          },
+          "observation_basis": "Actual DGAN training returned; freshly saved model config and real trained weight tensors inspected",
+          "input_sha256": "ad68eb1be631c27bc794f65a45c37a3897fe54f96d2f0d25d999a65c474b8f5c",
+          "source_response_sha256": "9c6378522960a5faa2c4ee731766193674f69c50f29aa5dcc23841118050963d",
+          "output_sha256": "17dc9a38ee981be072540f136370158c2efaf968393494117df0b90837eea595",
+          "output_bytes": 79,
+          "observation_sha256": "5f508cd631459fbfdca8141858d675f73e937c669ba1f58d1929e67cc0f359e0",
+          "csv_observations": {},
+          "independent_saved_model_reload_verified": true
+        },
+        {
+          "task_id": "task_e2b0ea1f",
+          "physical_task_id": "cfg-e1851d3b79ed07c1c1058f80decadbc36149df973625675d409118d15c884863",
+          "instance_id": "service-dev-fixture-34d25f298b4045199f9fefa6c332b690-22f199bc-a61c-4fb0-a86c-53278a07f6cd",
+          "operation": "GenerateData",
+          "configuration": {
+            "contract_id": "497b5c2c-2b01-4ba7-ba02-1a4170305851",
+            "contract_version": "1.0.0",
+            "instance_id": "service-dev-fixture-34d25f298b4045199f9fefa6c332b690-22f199bc-a61c-4fb0-a86c-53278a07f6cd",
+            "operation_identity": "urn:development-software-fixture:generatedata",
+            "parameters": {
+              "number_of_examples": 2
+            },
+            "schema_version": "1.0"
+          },
+          "configuration_sha256": "e9c091ad227f7c6378620e71ad067a03f2455481dbbf45352379a26f9e695257",
+          "parameter_contract_sha256": "8d487a9b9d98f5a032e0b62d9b1c951193bd08889ee55761a219889840265d9b",
+          "requested_parameters": {
+            "number_of_examples": 2
+          },
+          "delivered_parameters": {
+            "number_of_examples": 2
+          },
+          "observed_parameters": {
+            "number_of_examples": 2
+          },
+          "model": {
+            "sha256": "6a5579cc5a4a333ab216d6ea9846ccdacfb4aadf6f2c75f532030c44228eecad",
+            "weight_elements": 510707,
+            "weights_sha256": "4fef7b1d3377c39bd41e9ed233476ad34261780ccf5a2d4a40318a4d08f05d51"
+          },
+          "reloaded_model_configuration_sha256": "eb5d102b8f1fc95c92b37ee3fd6268c01f4d93a21fb07a7c995298dd10895894",
+          "reloaded_model_configuration": {
+            "epochs": 1,
+            "batch_size": 8,
+            "max_sequence_len": 4
+          },
+          "implementation": {
+            "image_sha256": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+            "name": "gretel_synthetics.timeseries_dgan.dgan.DGAN",
+            "source_sha256": "0a027576bb25656e4541dd822bf0f2395a79bb1cb377e1d11fb509dca9f79d54"
+          },
+          "observation_basis": "Actual DGAN generate call and freshly loaded model weights inspected; output CSV counted separately",
+          "input_sha256": "17dc9a38ee981be072540f136370158c2efaf968393494117df0b90837eea595",
+          "source_response_sha256": "d7e43cff63a43f703a9388a00a46a430ce7b44027f81e9e6f5313b115d905fe4",
+          "output_sha256": "d7e43cff63a43f703a9388a00a46a430ce7b44027f81e9e6f5313b115d905fe4",
+          "output_bytes": 371,
+          "observation_sha256": "d285c31233ff83f3633256147dcf60f292d7b4285621d32c20863751664ec446",
+          "csv_observations": {
+            "observed_sequence_count": 2,
+            "csv_data_rows": 8
+          },
+          "independent_saved_model_reload_verified": true
+        }
+      ],
+      "cross_owner_denials": {
+        "submitted-configuration": 403,
+        "instance-evidence": 403,
+        "orchestrator_tasks": 403,
+        "preview": 403
+      }
+    },
+    {
+      "label": "second-run",
+      "workflow_id": "wf-6066f56dcf4b",
+      "solution_id": "aef401a4-80f7-427e-8ebe-75a52a1d33cc",
+      "submission_id": "c2e1ca81-7c21-4206-afa1-dcb539d92c72",
+      "submitted_sha256": "87ee1ad20f596682fdd6c61a262aab501f2399a050f31971ec106e3e4ba4ebc8",
+      "selected_file": "DEVELOPMENT-SOFTWARE-FIXTURE.csv",
+      "tasks": [
+        {
+          "task_id": "task_546fc74d",
+          "physical_task_id": "cfg-3c794bfc8c5caeb6f09a1614e7fdd20af7e1b4e43e836623d6c74fd0c9d2ec37",
+          "instance_id": "service-dev-fixture-129cff6ae65642b1baecdef0411201fe-f8b9e1af-6a06-48cc-96f9-bb478127f49c",
+          "operation": "TrainModel",
+          "configuration": {
+            "contract_id": "9fa3a3a9-09df-4e18-93a4-b68dc4392e9e",
+            "contract_version": "1.0.0",
+            "instance_id": "service-dev-fixture-129cff6ae65642b1baecdef0411201fe-f8b9e1af-6a06-48cc-96f9-bb478127f49c",
+            "operation_identity": "urn:development-software-fixture:trainmodel",
+            "parameters": {
+              "batch_size": 16,
+              "epochs": 2,
+              "sequence_len": 4
+            },
+            "schema_version": "1.0"
+          },
+          "configuration_sha256": "9325e83bad5c1a935b5e175fe581d7c2289285bfb306425c03ccfd380c6b688b",
+          "parameter_contract_sha256": "89047a93dafd538dcfd2c248c12eebae6dcaf864b92cf467bec3242cda994e48",
+          "requested_parameters": {
+            "batch_size": 16,
+            "epochs": 2,
+            "sequence_len": 4
+          },
+          "delivered_parameters": {
+            "batch_size": 16,
+            "epochs": 2,
+            "sequence_len": 4
+          },
+          "observed_parameters": {
+            "batch_size": 8,
+            "epochs": 2,
+            "sequence_len": 4
+          },
+          "model": {
+            "sha256": "9f6a045afc9c4088da0003df38e1ec9fd22efc9edecb3a942b3492bbde46cc99",
+            "weight_elements": 510707,
+            "weights_sha256": "0f618b3101f6f22866de07e033cb631a7d8dc8a18f934220513bb559229837f6"
+          },
+          "reloaded_model_configuration_sha256": "dabf225d43fbafb2f9f986db90dcbd2d7204733c5a67b7592dfd02758d551a58",
+          "reloaded_model_configuration": {
+            "epochs": 2,
+            "batch_size": 8,
+            "max_sequence_len": 4
+          },
+          "implementation": {
+            "image_sha256": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+            "name": "gretel_synthetics.timeseries_dgan.dgan.DGAN",
+            "source_sha256": "0a027576bb25656e4541dd822bf0f2395a79bb1cb377e1d11fb509dca9f79d54"
+          },
+          "observation_basis": "Actual DGAN training returned; freshly saved model config and real trained weight tensors inspected",
+          "input_sha256": "ad68eb1be631c27bc794f65a45c37a3897fe54f96d2f0d25d999a65c474b8f5c",
+          "source_response_sha256": "4035f604f08df084da20afcb5770667ea4823973133ebc2ef31838893300e59c",
+          "output_sha256": "31fd6efec75a07522bebce655efd232afa7191a002da8e5d60a24808d91d4446",
+          "output_bytes": 79,
+          "observation_sha256": "ad77ce072f44f77c20828bd2419e2d98b48b3e749a62e61f978c6d981e9e88f0",
+          "csv_observations": {},
+          "independent_saved_model_reload_verified": true
+        },
+        {
+          "task_id": "task_e2b0ea1f",
+          "physical_task_id": "cfg-c60e39a08cbb2fc1e7fd56f38aa6c0f37f1bf62aa488c9ac12eccff8f4146047",
+          "instance_id": "service-dev-fixture-34d25f298b4045199f9fefa6c332b690-22f199bc-a61c-4fb0-a86c-53278a07f6cd",
+          "operation": "GenerateData",
+          "configuration": {
+            "contract_id": "497b5c2c-2b01-4ba7-ba02-1a4170305851",
+            "contract_version": "1.0.0",
+            "instance_id": "service-dev-fixture-34d25f298b4045199f9fefa6c332b690-22f199bc-a61c-4fb0-a86c-53278a07f6cd",
+            "operation_identity": "urn:development-software-fixture:generatedata",
+            "parameters": {
+              "number_of_examples": 3
+            },
+            "schema_version": "1.0"
+          },
+          "configuration_sha256": "a3f2a4e6bf79fde0d707514c5dfc8735700faf4c693f6f4dcb671d5197330bb2",
+          "parameter_contract_sha256": "8d487a9b9d98f5a032e0b62d9b1c951193bd08889ee55761a219889840265d9b",
+          "requested_parameters": {
+            "number_of_examples": 3
+          },
+          "delivered_parameters": {
+            "number_of_examples": 3
+          },
+          "observed_parameters": {
+            "number_of_examples": 3
+          },
+          "model": {
+            "sha256": "9f6a045afc9c4088da0003df38e1ec9fd22efc9edecb3a942b3492bbde46cc99",
+            "weight_elements": 510707,
+            "weights_sha256": "0f618b3101f6f22866de07e033cb631a7d8dc8a18f934220513bb559229837f6"
+          },
+          "reloaded_model_configuration_sha256": "dabf225d43fbafb2f9f986db90dcbd2d7204733c5a67b7592dfd02758d551a58",
+          "reloaded_model_configuration": {
+            "epochs": 2,
+            "batch_size": 8,
+            "max_sequence_len": 4
+          },
+          "implementation": {
+            "image_sha256": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+            "name": "gretel_synthetics.timeseries_dgan.dgan.DGAN",
+            "source_sha256": "0a027576bb25656e4541dd822bf0f2395a79bb1cb377e1d11fb509dca9f79d54"
+          },
+          "observation_basis": "Actual DGAN generate call and freshly loaded model weights inspected; output CSV counted separately",
+          "input_sha256": "31fd6efec75a07522bebce655efd232afa7191a002da8e5d60a24808d91d4446",
+          "source_response_sha256": "5c923986ae6cd23c02a88c157b5603cdc1438eb747a3fcb75bc3e3432b3f3a20",
+          "output_sha256": "5c923986ae6cd23c02a88c157b5603cdc1438eb747a3fcb75bc3e3432b3f3a20",
+          "output_bytes": 537,
+          "observation_sha256": "64990b7677c172620386c121afe22afd584f561ebef7cfc3df7a4801d1897102",
+          "csv_observations": {
+            "observed_sequence_count": 3,
+            "csv_data_rows": 12
+          },
+          "independent_saved_model_reload_verified": true
+        }
+      ],
+      "cross_owner_denials": {
+        "submitted-configuration": 403,
+        "instance-evidence": 403,
+        "orchestrator_tasks": 403,
+        "preview": 403
+      }
+    }
+  ],
+  "containers": [
+    {
+      "id": "a981c00894be24fa30cf91cbb509f8456e20d26b261ba3d0ffb48236dfce17f2",
+      "name": "/aie-normal-96b1d3a9e1c6-ml-1",
+      "image": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+      "status": "running",
+      "mounts": [
+        {
+          "type": "bind",
+          "destination": "/observation-contract",
+          "read_only": true
+        },
+        {
+          "type": "bind",
+          "destination": "/qualification",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "destination": "/qualification-evidence",
+          "read_only": false
+        },
+        {
+          "type": "volume",
+          "destination": "/app/models",
+          "read_only": false
+        }
+      ],
+      "ports": {}
+    },
+    {
+      "id": "75ef883f8bbd64c26980186eb07c24f00303e04eecc510e173c70e0964ed6cd6",
+      "name": "/aie-normal-96b1d3a9e1c6-connector-1",
+      "image": "sha256:557246d79612eaa2106266d60cc6b36970634afebb659e371658cce6a1f1f61f",
+      "status": "running",
+      "mounts": [
+        {
+          "type": "bind",
+          "destination": "/connector-entry",
+          "read_only": true
+        },
+        {
+          "type": "bind",
+          "destination": "/contracts",
+          "read_only": true
+        },
+        {
+          "type": "bind",
+          "destination": "/qualification-source",
+          "read_only": true
+        },
+        {
+          "type": "volume",
+          "destination": "/state",
+          "read_only": false
+        }
+      ],
+      "ports": {
+        "8080/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "28193"
+          }
+        ]
+      }
+    },
+    {
+      "id": "4be2ff907647ac5830637bc8c02d1d756f9e4bbcb07249e0663a6b958f0a2f23",
+      "name": "/aie-normal-96b1d3a9e1c6-redis-1",
+      "image": "sha256:8b81dd37ff027bec4e516d41acfbe9fe2460070dc6d4a4570a2ac5b9d59df065",
+      "status": "running",
+      "mounts": [
+        {
+          "type": "volume",
+          "destination": "/data",
+          "read_only": false
+        },
+        {
+          "type": "bind",
+          "destination": "/private/redis.conf",
+          "read_only": true
+        }
+      ],
+      "ports": {
+        "6379/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "26380"
+          }
+        ]
+      }
+    },
+    {
+      "id": "9ddf40c4224bfa8ee561684aa6e891791819149d899cae7d8c481674ff654d7c",
+      "name": "/ai-effect-pt-parameters-web-1",
+      "image": "sha256:a7ca1100fb5364ca876117a176b351f411bb330f5baa8dfe6a4f09de49d635ed",
+      "status": "running",
+      "mounts": [],
+      "ports": {
+        "3000/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "23124"
+          }
+        ]
+      }
+    }
+  ],
+  "first_run_unchanged_after_second": true,
+  "invalid_epoch_zero_rejected_by_normal_save": true,
+  "designer_execution_count": 2,
+  "paid_provider_calls": 0,
+  "actual_portuguese_provider_contracts_changed": 0,
+  "limitations": [
+    "Software fixture limits/defaults only",
+    "Browser automation as independent account; human acceptance not claimed",
+    "SQLite development workspace, not PostgreSQL/staging/release acceptance",
+    "Assistant tests use an explicit double; genuine paid conversation pending"
+  ]
+}
