@@ -107,6 +107,9 @@ class ControlClient:
                 raise ValueError("Legacy parameters and validated configuration are mutually exclusive")
             self.check_configuration(base_url, method, configuration)
 
+        if any(ref.protocol.value == "inline" and ref.format == "csv" for ref in (inputs or [])):
+            self.check_inputs(base_url, method, [ref.model_dump(mode="json") for ref in inputs], configuration)
+
         request = ExecuteRequest(
             method=method,
             workflow_id=workflow_id,
@@ -150,6 +153,25 @@ class ControlClient:
             return match_wrapper_configuration(method, configuration, response.json())
         except (httpx.RequestError, ValueError, TypeError, KeyError) as exc:
             raise ControlClientError(f"Configuration compatibility rejected: {exc}") from exc
+
+    def check_inputs(self, base_url, method, inputs, configuration=None):
+        """Read-only opt-in for selected inline CSV; no data is sent in this probe."""
+        if not any(ref.get("protocol") == "inline" and ref.get("format") == "csv" for ref in (inputs or [])):
+            return {"verified": []}
+        try:
+            with httpx.Client(timeout=min(self._timeout, 5)) as client:
+                response = client.get(f"{base_url.rstrip('/')}/control/capabilities", headers=self._headers)
+            if response.status_code != 200: raise ValueError("Input capabilities unavailable")
+            capability = response.json()
+            if capability.get("capability_schema_version") != "1.0" or not isinstance(capability.get("operations"), list):
+                raise ValueError("Unsupported input capability version")
+            matches = [op for op in capability.get("operations", []) if op.get("operation_name") == method
+                       and (configuration is None or all(op.get(key) == configuration[key] for key in ("operation_identity", "contract_version")))]
+            if len(matches) != 1 or not isinstance(matches[0].get("input_transports"), list) or "inline-csv-v1" not in matches[0]["input_transports"]:
+                raise ValueError("This operation does not advertise selected inline CSV input")
+            return {"verified": ["inline-csv-v1"]}
+        except (httpx.RequestError, ValueError, TypeError, KeyError, AttributeError) as exc:
+            raise ControlClientError(f"Input compatibility rejected: {exc}") from exc
 
     def get_status(self, base_url: str, task_id: str) -> StatusResponse:
         """Call GET /control/status/{task_id}."""

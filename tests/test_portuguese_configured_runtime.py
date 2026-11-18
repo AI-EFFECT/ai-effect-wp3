@@ -118,7 +118,9 @@ def runtime(tmp_path, monkeypatch):
 
 def test_reviewed_values_bind_to_actual_source_api_and_keep_configured_results(runtime):
     original = runtime.csv.read_bytes(); earlier = None; runs = []
-    assert runtime.client.get('/control/capabilities').json() == CAPABILITY
+    expected_capability = deepcopy(CAPABILITY)
+    expected_capability['operations'][0]['input_transports'] = ['inline-csv-v1']
+    assert runtime.client.get('/control/capabilities').json() == expected_capability
     for task, epochs, sequences in [('first', 2, 2), ('second', 3, 4)]:
         payload = request(runtime, task=task, epochs=epochs, batch_size=4, sequence_len=3)
         train = finished(runtime, runtime.client.post('/control/execute', json=payload))
@@ -361,3 +363,17 @@ def test_receipt_read_and_atomic_replace_share_a_lock(runtime, monkeypatch):
         reader.join(3)
         if writer.ident is not None: writer.join(3)
     assert replacing.is_set() and not reader.is_alive() and not writer.is_alive()
+
+
+def test_inline_csv_selected_in_normal_builder_reaches_source_without_paths(runtime):
+    import base64
+    raw = b'datetime,value\n2026-01-01,2\n'
+    ref = {'protocol': 'inline', 'format': 'csv', 'uri': base64.b64encode(raw).decode()}
+    record = finished(runtime, runtime.client.post('/control/execute', json=request(runtime, ref=ref)))
+    assert record['state'] == 'complete', record
+    assert record['input_sha256'] == hashlib.sha256(raw).hexdigest()
+    assert runtime.calls == [('train', {'index_col': 'datetime', 'sequence_len': 3, 'batch_size': 4, 'epochs': 2})]
+    for key, bad in [('wrong-base64', '%%%'), ('oversized', base64.b64encode(b'x'*(runtime.connector.max_bytes+1)).decode())]:
+        failure = finished(runtime, runtime.client.post('/control/execute', json=request(runtime, task=key, ref={**ref, 'uri': bad})))
+        assert failure['state'] == 'failed' and failure['dispatch_started'] is False
+    assert len(runtime.calls) == 1

@@ -75,14 +75,14 @@ class OrchestratorAPI:
         @app.get("/capabilities", dependencies=[Depends(_verify_orchestrator_key)])
         def capabilities():
             return {"capability_schema_version": "1.0", "transports": ["http-parameters-v1"],
-                    "parameter_validation": "wrapper-contract-v1", "runtime": "wp3-aie18-integration-v2"}
+                    "parameter_validation": "wrapper-contract-v1", "input_transport_validation": "wrapper-input-v1", "runtime": "wp3-aie18-integration-v2"}
 
         @app.post("/workflows/check-compatibility", dependencies=[Depends(_verify_orchestrator_key)])
         def check_compatibility(request: WorkflowSubmitRequest):
             try:
                 graph = self._blueprint_parser.parse_json(request.blueprint)
                 endpoints = self._dockerinfo_parser.parse_json(request.dockerinfo)
-                return check_configurations(graph, endpoints, request.task_configurations, request.services_api_key)
+                return check_configurations(graph, endpoints, request.task_configurations, request.services_api_key, request.inputs)
             except (BlueprintParseError, DockerInfoParseError, ControlClientError, ValueError) as exc:
                 raise HTTPException(409, f"Configuration compatibility rejected: {exc}") from exc
 
@@ -115,7 +115,7 @@ class OrchestratorAPI:
                 raise HTTPException(status_code=400, detail=f"Invalid dockerinfo: {e}")
 
             try:
-                check_configurations(graph, endpoints, request.task_configurations, request.services_api_key)
+                check_configurations(graph, endpoints, request.task_configurations, request.services_api_key, request.inputs)
             except (ControlClientError, ValueError) as exc:
                 raise HTTPException(409, f"Configuration compatibility rejected: {exc}") from exc
 

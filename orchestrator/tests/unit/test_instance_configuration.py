@@ -185,3 +185,19 @@ def test_concurrent_workflows_have_independent_configurations():
         return engine.get_instance_configuration(f"wf-{index}", "first:Process")["parameters"]["seed"]
     with ThreadPoolExecutor(max_workers=4) as pool:
         assert list(pool.map(save, range(12))) == [42, 43] * 6
+
+
+@pytest.mark.parametrize('declaration', [None, 'inline-csv-v1', [], ['inline-csv-v1']])
+def test_inline_csv_transport_is_negotiated_before_dispatch(httpx_mock, declaration):
+    from models.data_reference import DataReference
+    cap = deepcopy(CAPABILITY)
+    if declaration is not None: cap['operations'][0]['input_transports'] = declaration
+    httpx_mock.add_response(method='GET', url='http://fixture/control/capabilities', json=cap)
+    data = DataReference(protocol='inline', format='csv', uri='eAoxCg==')
+    if declaration == ['inline-csv-v1']:
+        httpx_mock.add_response(method='POST', url='http://fixture/control/execute', json={'status': 'complete'})
+        assert ControlClient().execute('http://fixture', 'Process', 'wf-csv', 'task-csv', inputs=[data]).status == 'complete'
+    else:
+        with pytest.raises(ControlClientError, match='Input compatibility rejected'):
+            ControlClient().execute('http://fixture', 'Process', 'wf-csv', 'task-csv', inputs=[data])
+        assert all(req.method == 'GET' for req in httpx_mock.get_requests())

@@ -4,8 +4,9 @@ from services.parameter_contract import validate_configuration_envelope
 import hashlib
 
 
-def check_configurations(graph, endpoints, configurations, api_key=None):
-    if not configurations:
+def check_configurations(graph, endpoints, configurations, api_key=None, inputs=None):
+    selected_csv = any(ref.get("protocol") == "inline" and ref.get("format") == "csv" for ref in (inputs or []))
+    if not configurations and not selected_csv:
         return {"status": "ready", "checks": {}, "mode": "legacy"}
     if set(configurations) - set(graph.all_nodes):
         raise ValueError("Configuration targets an unknown graph instance")
@@ -23,4 +24,12 @@ def check_configurations(graph, endpoints, configurations, api_key=None):
             raise ValueError("Configured instance has no runtime endpoint")
         checks[key] = client.check_configuration(f"http://{endpoint.address}:{endpoint.port}",
             node.operation.operation_signature.operation_name, configuration)
-    return {"status": "ready", "checks": checks, "mode": "configured"}
+    result = {"status": "ready", "checks": checks, "mode": "configured"}
+    if selected_csv:
+        result["input_checks"] = {}
+        for node in graph.start_nodes:
+            endpoint = endpoints.get(node.node.container_name)
+            if endpoint is None: raise ValueError("Selected input has no start-node endpoint")
+            result["input_checks"][node.key] = client.check_inputs(f"http://{endpoint.address}:{endpoint.port}",
+                node.operation.operation_signature.operation_name, inputs, configurations.get(node.key))
+    return result

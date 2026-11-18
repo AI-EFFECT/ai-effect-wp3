@@ -105,7 +105,9 @@ class Runtime:
                 if method == 'TrainModel' and not self.index_column:
                     raise ValueError('Declare the training dataset index column separately from settings')
                 parameter_contract_digest(operation['execution_parameters'])
-                operations.append(deepcopy(operation))
+                advertised = deepcopy(operation)
+                if method == 'TrainModel': advertised['input_transports'] = ['inline-csv-v1']
+                operations.append(advertised)
         identities = [(o['operation_name'], o['operation_identity'], o['contract_version']) for o in operations]
         if not operations or len(set(identities)) != len(identities): raise ValueError('Missing or ambiguous installed operations')
         result = {'capability_schema_version': '1.0', 'transports': ['http-parameters-v1'], 'operations': operations}
@@ -175,6 +177,14 @@ class Runtime:
         return hashlib.sha256(document.content).hexdigest()
 
     def input_bytes(self, reference, client):
+        if reference.get('protocol') == 'inline' and reference.get('format') == 'csv':
+            if len(reference.get('uri', '')) > ((self.max_bytes + 2) // 3) * 4:
+                raise ValueError('Selected input exceeds the operator byte ceiling')
+            raw = base64.b64decode(reference['uri'], validate=True)
+            if not raw or len(raw) > self.max_bytes:
+                raise ValueError('Selected input exceeds the operator byte ceiling')
+            raw.decode('utf-8')
+            return raw
         if reference.get('protocol') == 'file' and self.input_root:
             path = Path(reference['uri']).resolve()
             if self.input_root not in path.parents or not path.is_file() or path.stat().st_size > self.max_bytes:
