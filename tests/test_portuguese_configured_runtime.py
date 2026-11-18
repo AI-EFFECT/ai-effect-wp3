@@ -28,6 +28,7 @@ sys.modules[spec.name] = package
 spec.loader.exec_module(package)
 from configured_portugal_test import control_interface as control
 from configured_portugal_test.configured_synthetic import Runtime
+import configured_portugal_test.configured_synthetic as configured_module
 
 CAPABILITY = {'capability_schema_version': '1.0', 'transports': ['http-parameters-v1'], 'operations': [
     {'operation_name': method, 'operation_identity': 'urn:test:source-api:' + method, 'contract_version': '1.0.0',
@@ -326,3 +327,37 @@ def test_draft_export_requires_explicit_isolated_qualification_mode(runtime):
     assert runtime.client.get('/control/capabilities').json()['qualification_only'] is True
     record = finished(runtime, runtime.client.post('/control/execute', json=request(runtime)))
     assert record['state'] == 'complete'  # Source wiring double only, no publication.
+
+
+def test_receipt_read_and_atomic_replace_share_a_lock(runtime, monkeypatch):
+    """Windows open readers otherwise deny os.replace during normal polling."""
+    receipt = finished(runtime, runtime.client.post('/control/execute', json=request(runtime)))
+    path = runtime.connector.path(receipt['service_task_id'])
+    reading, release, attempting, replacing = [threading.Event() for _ in range(4)]
+    original_read, original_write = Path.read_text, configured_module.atomic_json
+    def held_read(candidate, *args, **kwargs):
+        if candidate == path:
+            reading.set()
+            assert release.wait(3)
+        return original_read(candidate, *args, **kwargs)
+    def recorded_write(*args):
+        replacing.set()
+        return original_write(*args)
+    monkeypatch.setattr(Path, 'read_text', held_read)
+    monkeypatch.setattr(configured_module, 'atomic_json', recorded_write)
+    reader = threading.Thread(target=runtime.connector.read, args=(receipt['service_task_id'],))
+    def write():
+        attempting.set()
+        runtime.connector.write(path, receipt)
+    writer = threading.Thread(target=write)
+    reader.start()
+    try:
+        assert reading.wait(3)
+        writer.start()
+        assert attempting.wait(3)
+        assert not replacing.wait(.05)
+    finally:
+        release.set()
+        reader.join(3)
+        if writer.ident is not None: writer.join(3)
+    assert replacing.is_set() and not reader.is_alive() and not writer.is_alive()

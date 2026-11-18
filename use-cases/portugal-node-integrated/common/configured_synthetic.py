@@ -75,7 +75,7 @@ class Runtime:
             with marker.open('x') as stream: json.dump({'kind': 'configured-synthetic-v1'}, stream)
         self.qualification = environment.get('CONTROL_PARAMETER_QUALIFICATION_MODE') == 'true'
         self.handlers = handlers; self.transport = transport
-        self.boot = uuid4().hex; self.lock = threading.Lock()
+        self.boot = uuid4().hex; self.lock = threading.RLock()
         self.pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='configured-synthetic')
         self.capabilities()  # Reject incomplete operator configuration before serving.
 
@@ -116,10 +116,17 @@ class Runtime:
         if not re.fullmatch(r'cfg-[a-f0-9]{64}', identity): raise HTTPException(404, 'Unknown configured task')
         return self.storage / (identity + '.' + suffix)
 
+    def write(self, path, value):
+        # Windows readers do not share delete access. Keep journal reads and
+        # atomic replacement under the same reentrant per-runtime lock.
+        with self.lock:
+            atomic_json(path, value)
+
     def read(self, identity):
         path = self.path(identity)
-        if not path.is_file() or path.is_symlink(): raise HTTPException(404, 'Unknown configured task')
-        value = json.loads(path.read_text())
+        with self.lock:
+            if not path.is_file() or path.is_symlink(): raise HTTPException(404, 'Unknown configured task')
+            value = json.loads(path.read_text())
         if value['state'] in {'queued', 'running'} and value['boot'] != self.boot:
             value.update(state='uncertain', error='Service restarted with an unresolved execution. Reconcile upstream before creating another attempt.')
         return value
@@ -216,7 +223,7 @@ class Runtime:
 
     def run(self, identity, reference):
         value = self.read(identity); value['state'] = 'running'
-        atomic_json(self.path(identity), value)
+        self.write(self.path(identity), value)
         try:
             with self.lock:
                 if any(p.stem != identity and self.read(p.stem)['state'] == 'uncertain'
@@ -230,13 +237,13 @@ class Runtime:
                     args = {'user_id': self.namespace, 'model_name': 'model_' + identity[4:36], 'index_col': self.index_column,
                             'overwrite': False, **parameters}
                     value.update(input_sha256=hashlib.sha256(data).hexdigest(), delivered_query=args, dispatch_started=True)
-                    atomic_json(self.path(identity), value)
+                    self.write(self.path(identity), value)
                     response = client.post(self.upstream + '/train', params=args, files={'uploaded_file': ('selected.csv', data, 'text/csv')})
                     if response.status_code != 200: raise ValueError('Synchronous training did not establish completion')
                     models = client.get(self.upstream + '/models', params={'user_id': self.namespace}); models.raise_for_status()
                     if args['model_name'] not in [m.get('name') for m in models.json()]: raise ValueError('The completed model was not listed')
                     model_ref = 'urn:aieffect:configured-model:' + uuid4().hex
-                    atomic_json(self.storage / ('model-' + hashlib.sha256(model_ref.encode()).hexdigest() + '.json'),
+                    self.write(self.storage / ('model-' + hashlib.sha256(model_ref.encode()).hexdigest() + '.json'),
                                 {'user_id': self.namespace, 'model_name': args['model_name'], 'workflow_id': value['workflow_id'], 'producer_task_id': identity})
                     data, fmt = json.dumps({'model_ref': model_ref}).encode(), 'json'
                     value['completion_basis'] = 'Synchronous HTTP 200 plus model listing; not progress counters'
@@ -244,7 +251,7 @@ class Runtime:
                     model = self.resolve_model(reference, value['workflow_id'])
                     args = {'user_id': model['user_id'], 'model_name': model['model_name'], 'return_csv': True, **parameters}
                     value.update(model_binding=model, delivered_query=args, dispatch_started=True)
-                    atomic_json(self.path(identity), value)
+                    self.write(self.path(identity), value)
                     with client.stream('GET', self.upstream + '/generate', params=args) as response:
                         if response.status_code != 200 or response.headers.get('content-type', '').split(';')[0] != 'text/csv':
                             raise ValueError('Generation did not return the declared CSV representation')
@@ -267,4 +274,4 @@ class Runtime:
         except Exception as exc:
             value.update(state='uncertain' if value['dispatch_started'] else 'failed', error_kind=type(exc).__name__,
                          error=str(exc) if isinstance(exc, ValueError) else 'Configured processing did not establish completion; inspect private operator logs and upstream state')
-        atomic_json(self.path(identity), value)
+        self.write(self.path(identity), value)
