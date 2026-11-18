@@ -115,6 +115,9 @@ def _render_topologies(
             },
             "generated_by": "draw_topology",
         }
+        if "execution" in topology_output:
+            # Keep producer settings attached to the visual result as well.
+            payload["upstream_execution"] = topology_output["execution"]
 
         manager.complete_task(
             task_id,

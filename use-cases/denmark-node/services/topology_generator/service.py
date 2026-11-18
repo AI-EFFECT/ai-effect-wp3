@@ -14,10 +14,15 @@ import logging
 import os
 import sys
 import time
+from copy import deepcopy
+import hashlib
 from pathlib import Path
 from typing import Any
+from fastapi import HTTPException
 
-from dh_network_generator import Infrastructure, enumerate_networks
+from dh_network_generator import DEFAULT_TOPOLOGY, Infrastructure, enumerate_networks
+from common.configuration import load_contract, output_path, write_output
+from common.parameter_contract import match_wrapper_configuration
 from handler import (
     DataReference,
     ExecuteRequest,
@@ -30,6 +35,11 @@ from handler import (
 
 logger = logging.getLogger(__name__)
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
+
+
+def configuration_capabilities():
+    return load_contract(os.environ.get("SERVICE_PARAMETER_CONTRACT_FILE"), "GenerateTopology", {
+        "allow_hx": "boolean", "allow_bypass": "boolean", "how_many": "integer"})
 
 
 def resolve_input(inputs: list[dict], default: Any = None) -> Any:
@@ -59,9 +69,18 @@ def publish_output(workflow_id: str, task_id: str, payload: dict) -> dict:
 
 def execute_GenerateTopology(request: ExecuteRequest) -> ExecuteResponse:
     """Generate a topology from the assistant's normalized run config."""
-    task_manager.register_task(request.task_id, request)
-    run_in_background(request.task_id, _generate_topology, request)
-    return ExecuteResponse(status="running", task_id=request.task_id)
+    if request.configuration is not None:
+        # Also validate direct invocation before a task or background thread exists.
+        match_wrapper_configuration(request.method, request.configuration, configuration_capabilities())
+    # Removing configuration must not make a recorded configured output writable.
+    output_path(DATA_DIR, request.workflow_id, request.task_id)
+    configured_task_id = "cfg-" + hashlib.sha256(json.dumps([request.workflow_id, request.task_id]).encode()).hexdigest()
+    if request.configuration is None and task_manager.get_status(configured_task_id) is not None:
+        raise HTTPException(409, "A configured execution already owns this task identity")
+    service_task_id = configured_task_id if request.configuration is not None else request.task_id
+    task_manager.register_task(service_task_id, request)
+    run_in_background(service_task_id, _generate_topology, request)
+    return ExecuteResponse(status="running", task_id=service_task_id)
 
 
 def execute_ValidateTopology(request: ExecuteRequest) -> ExecuteResponse:
@@ -94,21 +113,36 @@ def _generate_topology(
                 "(a JSON object containing 'run_config')."
             )
 
-        config = assistant_output["run_config"]
+        if not isinstance(assistant_output, dict) or not isinstance(assistant_output.get("run_config"), dict):
+            raise ValueError("GenerateTopology requires a run_config object")
+        config = deepcopy(assistant_output["run_config"])
+        configuration = request.configuration
+        matched = None
+        if configuration is not None:
+            if len(request.inputs) != 1:
+                raise ValueError("Configured GenerateTopology requires exactly one run configuration input")
+            matched = match_wrapper_configuration(request.method, configuration, configuration_capabilities())
+            # Instance settings deliberately override upstream routing defaults.
+            # Preserve supplies/loads and never mutate the upstream artifact.
+            config.update(deepcopy(configuration["parameters"]))
         supplies = config.get("supplies", [])
         loads = config.get("loads", [])
         if not supplies or not loads:
             raise ValueError("run_config must contain at least one supply and load")
 
         manager.update_progress(task_id, 45)
-        infra = Infrastructure.load(Path("/app/syslab_heat_topology.yaml"))
+        infra = Infrastructure.load(DEFAULT_TOPOLOGY)
+        arguments = {
+            "allow_hx": bool(config.get("allow_hx", True)),
+            "allow_bypass": bool(config.get("allow_bypass", True)),
+            "max_results": (config["how_many"] if configuration is not None and "how_many" in configuration["parameters"]
+                            else int(config.get("how_many") or 20)),
+        }
         solutions = enumerate_networks(
             infra,
             supplies,
             loads,
-            allow_hx=bool(config.get("allow_hx", True)),
-            allow_bypass=bool(config.get("allow_bypass", True)),
-            max_results=int(config.get("how_many") or 20),
+            **arguments,
         )
         if not solutions:
             raise ValueError("no feasible topology found for the requested supplies and loads")
@@ -163,11 +197,29 @@ def _generate_topology(
             "generated_by": "dh_network_generator",
         }
 
+        if configuration is not None:
+            consumed = {name: arguments["max_results" if name == "how_many" else name]
+                        for name in configuration["parameters"]}
+            payload["execution"] = {
+                "schema_version": "1.0", "workflow_id": request.workflow_id, "task_id": request.task_id,
+                "service_task_id": task_id,
+                "instance_id": configuration["instance_id"], "operation_name": request.method,
+                "configuration": deepcopy(configuration), "algorithm_consumed": consumed,
+                "algorithm_arguments": arguments,
+                "parameter_contract_sha256": matched["parameter_contract_sha256"],
+                "input_sha256": hashlib.sha256(json.dumps(assistant_output, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()).hexdigest(),
+                "parameter_sources": {name: "instance_configuration" if name in consumed else
+                                      "upstream_run_config" if name in assistant_output["run_config"] else "legacy_handler_default"
+                                      for name in ("allow_hx", "allow_bypass", "how_many")},
+                "instrumentation": "Arguments passed to enumerate_networks in this task; provider/runtime instrumentation, not scientific qualification",
+            }
+
         logger.info("Built %d topology/topologies for %d supply and %d load(s)",
                 len(solutions), len(supplies), len(loads))
         manager.complete_task(
             task_id,
-            publish_output(request.workflow_id, task_id, payload),
+            (write_output(DATA_DIR, request.workflow_id, request.task_id, payload) if configuration is not None
+             else publish_output(request.workflow_id, task_id, payload)),
         )
 
     except Exception as exc:  # noqa: BLE001

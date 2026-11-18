@@ -11,6 +11,7 @@ import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
+from .configuration import ConfigurableRequest, capabilities, validate_request
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -35,14 +36,9 @@ class DataReference(BaseModel):
     format: str
 
 
-class ExecuteRequest(BaseModel):
+class ExecuteRequest(ConfigurableRequest):
     """Execute request from orchestrator."""
 
-    method: str
-    workflow_id: str
-    task_id: str
-    inputs: list[dict] = []
-    parameters: dict = {}
 
 
 class ExecuteResponse(BaseModel):
@@ -82,8 +78,11 @@ def create_app(service_module) -> FastAPI:
                 detail=f"Unknown method: {request.method}",
             )
 
+        validate_request(service_module, request)
         try:
             return handler(request)
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Execute failed: {e}")
             return ExecuteResponse(status="failed", error=str(e))
@@ -92,6 +91,10 @@ def create_app(service_module) -> FastAPI:
     def health() -> dict:
         """Health check."""
         return {"status": "ok"}
+
+    @app.get("/control/capabilities", dependencies=[Depends(_check_api_key)])
+    def get_capabilities():
+        return capabilities(service_module)
 
     return app
 
