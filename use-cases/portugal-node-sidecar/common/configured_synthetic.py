@@ -23,6 +23,8 @@ from uuid import uuid4
 import httpx
 from fastapi import HTTPException
 
+from . import runtime_observation
+
 from .parameter_contract import match_wrapper_configuration, parameter_contract_digest
 
 TYPES = {"TrainModel": {"epochs": "integer", "batch_size": "integer", "sequence_len": "integer"},
@@ -217,6 +219,7 @@ class Runtime:
         else:
             raise ValueError('Select a configured model reference or a declared shared-model reference')
         if len(raw) > 16000: raise ValueError('Model reference is too large')
+        reference_hash = hashlib.sha256(raw).hexdigest()
         value = json.loads(raw)
         if set(value) != {'model_ref'} or not isinstance(value['model_ref'], str): raise ValueError('Model input must be an opaque model_ref')
         key = hashlib.sha256(value['model_ref'].encode()).hexdigest()
@@ -224,12 +227,34 @@ class Runtime:
         if local.is_file():
             model = json.loads(local.read_text())
             if model['workflow_id'] != workflow_id: raise ValueError('A private model belongs to a different workflow')
-            return model
+            return {**model, '_input_sha256': reference_hash}
         catalogue = self.environment.get('SYNTHETIC_DATA_SHARED_MODELS_FILE')
         shared = json.loads(Path(catalogue).read_text()).get(value['model_ref']) if catalogue else None
         if not shared or shared.get('share_scope') != 'service_callers': raise ValueError('Model reference is not authorised')
         if not SAFE_ID.fullmatch(shared['user_id']) or not SAFE_ID.fullmatch(shared['model_name']): raise ValueError('Shared model identity is invalid')
-        return {'user_id': shared['user_id'], 'model_name': shared['model_name'], 'shared_reference': value['model_ref']}
+        return {'user_id': shared['user_id'], 'model_name': shared['model_name'], 'shared_reference': value['model_ref'], '_input_sha256': reference_hash}
+
+    def observation_headers(self, value):
+        if not self.environment.get('SYNTHETIC_DATA_OBSERVATION_URL'):
+            return {}
+        token = self.environment.get('SYNTHETIC_DATA_OBSERVATION_KEY', '')
+        if not token: raise ValueError('Observation authority must be explicitly installed')
+        context = {key: value[key] for key in ('workflow_id', 'task_id', 'service_task_id', 'configuration', 'parameter_contract_sha256', 'input_sha256')}
+        return {'X-AI-Effect-Execution': json.dumps(context, separators=(',', ':')), 'X-AI-Effect-Observation-Key': token}
+
+    def collect_observation(self, value, client):
+        endpoint = self.environment.get('SYNTHETIC_DATA_OBSERVATION_URL')
+        if not endpoint: return
+        response = client.get(base_url(endpoint) + '/' + value['service_task_id'],
+            headers={'Authorization': 'Bearer ' + self.environment['SYNTHETIC_DATA_OBSERVATION_KEY']})
+        response.raise_for_status()
+        if len(response.content) > 128000: raise ValueError('Runtime observation exceeds byte ceiling')
+        document = response.json()
+        runtime_observation.validate(document, workflow_id=value['workflow_id'], task_id=value['task_id'],
+            configuration=value['configuration'], parameter_contract_sha256=value['parameter_contract_sha256'],
+            input_sha256=value['input_sha256'], source_response_sha256=value['source_response_sha256'])
+        value['runtime_observation'] = document
+        value['runtime_observation_sha256'] = runtime_observation.digest(document)
 
     def run(self, identity, reference):
         value = self.read(identity); value['state'] = 'running'
@@ -248,8 +273,10 @@ class Runtime:
                             'overwrite': False, **parameters}
                     value.update(input_sha256=hashlib.sha256(data).hexdigest(), delivered_query=args, dispatch_started=True)
                     self.write(self.path(identity), value)
-                    response = client.post(self.upstream + '/train', params=args, files={'uploaded_file': ('selected.csv', data, 'text/csv')})
+                    response = client.post(self.upstream + '/train', params=args, files={'uploaded_file': ('selected.csv', data, 'text/csv')}, headers=self.observation_headers(value))
                     if response.status_code != 200: raise ValueError('Synchronous training did not establish completion')
+                    value['source_response_sha256'] = hashlib.sha256(response.content).hexdigest()
+                    self.collect_observation(value, client)
                     models = client.get(self.upstream + '/models', params={'user_id': self.namespace}); models.raise_for_status()
                     if args['model_name'] not in [m.get('name') for m in models.json()]: raise ValueError('The completed model was not listed')
                     model_ref = 'urn:aieffect:configured-model:' + uuid4().hex
@@ -260,9 +287,9 @@ class Runtime:
                 else:
                     model = self.resolve_model(reference, value['workflow_id'])
                     args = {'user_id': model['user_id'], 'model_name': model['model_name'], 'return_csv': True, **parameters}
-                    value.update(model_binding=model, delivered_query=args, dispatch_started=True)
+                    value.update(model_binding={k:v for k,v in model.items() if not k.startswith('_')}, input_sha256=model['_input_sha256'], delivered_query=args, dispatch_started=True)
                     self.write(self.path(identity), value)
-                    with client.stream('GET', self.upstream + '/generate', params=args) as response:
+                    with client.stream('GET', self.upstream + '/generate', params=args, headers=self.observation_headers(value)) as response:
                         if response.status_code != 200 or response.headers.get('content-type', '').split(';')[0] != 'text/csv':
                             raise ValueError('Generation did not return the declared CSV representation')
                         collected = bytearray()
@@ -270,6 +297,8 @@ class Runtime:
                             collected.extend(chunk)
                             if len(collected) > 20_000_000: raise ValueError('Generation response exceeds the connector output byte ceiling')
                         data, fmt = bytes(collected), 'csv'
+                    value['source_response_sha256'] = hashlib.sha256(data).hexdigest()
+                    self.collect_observation(value, client)
                     rows = list(csv.DictReader(io.StringIO(data.decode('utf-8'))))
                     if not rows or any(not row.get('example') for row in rows): raise ValueError('CSV lacks source-declared example markers')
                     observed = len({row['example'] for row in rows})

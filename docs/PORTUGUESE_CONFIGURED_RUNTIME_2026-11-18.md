@@ -1,5 +1,11 @@
 # Portuguese source-API configuration connector — 18 November 2026
 
+Later continuation: selected inline CSV input is implemented, and the optional
+[task-bound algorithm observation](ALGORITHM_SETTINGS_OBSERVATION_2026-11-18.md)
+connects separately observed real-model settings to authenticated receipts. The
+historical source-wiring status below is unchanged; current Windows browser/model
+software-fixture evidence is published in the paired Portal development branch.
+
 Status: implemented and source-wiring verified. Real DGAN/model, Docker, Windows and independent user qualification remain pending. This is a node connector for the existing shared `http-parameters-v1` contract, not a new Portal workflow architecture. The original fixed-value handlers and source ML API are unchanged.
 
 ## Supported mapping
