@@ -34,7 +34,6 @@ from common.concurrent import (
 )
 
 logger = logging.getLogger(__name__)
-DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://ai-explainability-ollama:11434").rstrip("/")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "180"))
@@ -353,12 +352,9 @@ def configure_messages(messages: list[dict[str, str]]) -> dict[str, Any]:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
-def _publish_output(workflow_id: str, task_id: str, payload: dict[str, Any]) -> dict[str, str]:
-    output_dir = DATA_DIR / workflow_id
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{task_id}.json"
-    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    return {"protocol": "file", "uri": str(output_path), "format": "json"}
+def _publish_output(payload: dict[str, Any]) -> dict[str, str]:
+    encoded = base64.b64encode(json.dumps(payload).encode("utf-8")).decode("ascii")
+    return {"protocol": "inline", "uri": encoded, "format": "json"}
 
 
 def execute_ConfigureAnalysis(request: ExecuteRequest) -> ExecuteResponse:
@@ -380,9 +376,12 @@ def _configure_analysis(
         manager.complete_task(
             task_id,
             _publish_output(
-                request.workflow_id,
-                task_id,
-                {"status": "ready", "message": result["message"], "config": result["config"]},
+                {
+                    "status": "ready",
+                    "message": result["message"],
+                    "config_json": json.dumps(result["config"]),
+                    "config": result["config"],
+                },
             ),
         )
     except _AssistantError as exc:

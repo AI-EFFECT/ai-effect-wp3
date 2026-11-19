@@ -1,1 +1,29 @@
+# Python caches and build output
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+
+# Local secrets
+.env
+
+# Editor and OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+*:Zone.Identifier
+
+# Use-case outputs
 use-cases/ai-explainability/output/*
+use-cases/ai-explainability/export.zip

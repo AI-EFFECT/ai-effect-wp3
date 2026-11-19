@@ -565,3 +565,49 @@ pre {
     padding: 1rem;
   }
 }
+/* Shared-shell additions */
+
+[hidden] {
+  display: none !important;
+}
+
+.technical-details {
+  margin-top: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.technical-details summary {
+  cursor: pointer;
+  width: fit-content;
+}
+
+.workflow-task-waiting {
+  opacity: 0.6;
+}
+
+.workflow-gate {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--accent);
+  border-left-width: 4px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.workflow-gate-prompt {
+  margin: 0 0 0.6rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.workflow-gate-decided {
+  border-color: var(--line);
+  color: var(--muted);
+}
+
+.artifact-frame {
+  width: 100%;
+  min-height: 420px;
+  border: 1px solid var(--line);
+  background: #fff;
+}

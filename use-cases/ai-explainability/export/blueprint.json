@@ -45,8 +45,8 @@
         }
     ],
     "name": "Ai-Explainability",
-    "pipeline_id": "2bf6a68c-59c5-4d2f-9840-f4f589137690",
-    "creation_date": "2026-10-05 17:47:56.223557",
+    "pipeline_id": "b3450448-cec8-47ed-9a0d-a8014e1e1544",
+    "creation_date": "2026-11-04 14:53:45.919218",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }

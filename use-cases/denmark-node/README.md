@@ -12,10 +12,11 @@ confirmation step. Services can also be run without web UI
 
 ## Pipeline
 
-Run the UI regressions with:
+Run the UI regressions (shared UI, plus checks of this workflow's `ui.json`)
+from the repository root with:
 
 ```bash
-node --test services/web_ui/tests/ui.test.cjs
+node --test workflow-ui/tests/
 ```
 
 ```
@@ -29,7 +30,7 @@ config_assistant → topology_generator → draw_topology
 | `config_assistant` | DataSource | Validates and normalizes supplies, loads, and routing options | `service.py` |
 | `topology_generator` | MLModel | Enumerates feasible SYSLAB district-heating topologies | `dh_network_generator.py` |
 | `draw_topology` | DataSink | Renders topology candidates to SVG for review | `service.py` |
-| `web_ui` | User gateway | Submits prompts and records topology confirmation | `app.py` |
+| `web-ui` | User gateway | Submits prompts and records topology confirmation | shared [`workflow-ui/`](../../workflow-ui/README.md) |
 
 Node types (`DataSource` / `MLModel` / `DataSink`) are **auto-detected** by the
 export generator from `connections.json` — a node with no incoming connections is
@@ -46,10 +47,9 @@ denmark-node/
 ├── services/
 │   ├── config_assistant/       # BuildRunConfig
 │   ├── topology_generator/     # GenerateTopology
-│   ├── draw_topology/          # RenderTopologies and SVG renderer
-│   └── web_ui/                 # prompt submission and topology confirmation
+│   └── draw_topology/          # RenderTopologies and SVG renderer
 ├── connections.json            # service_mapping + wiring (input to the generator)
-├── ui.json                     # workflow-specific web UI manifest
+├── ui.json                     # manifest for the shared workflow UI (workflow-ui/)
 ├── docker-compose.yml
 ├── data/                       # bind-mount point for input datasets
 ├── output/                     # final reports land here
@@ -122,33 +122,23 @@ The topology output is stored as a DataReference on the shared volume.
 
 ## Dynamic web UI
 
-The `web_ui` service is a generic FastAPI gateway. It reads `USE_CASE_DIR`, loads
-`connections.json` for pipeline metadata, and optionally loads `ui.json` for the
-workflow-specific form, output labels, image fields, and review actions. This
-lets the same web UI container be reused across pipelines by mounting a different
-use-case directory and providing a different `ui.json`.
+The `web-ui` service is the shared workflow UI in
+[`workflow-ui/`](../../workflow-ui/README.md), also used by other workflows.
+`docker-compose.yml` builds it and mounts this directory; `ui.json` makes it the
+Denmark topology UI. Keep `ui.json` strict JSON: if it is missing or invalid,
+the page shows a warning and a generic form.
 
-Bootstrap handles the stable interface layer: layout grid, cards, forms, buttons,
-badges, alerts, and spacing. The shared `static/styles.css` file is kept small
-for theme overrides and workflow polish. Each workflow can set `theme` values in
-`ui.json` such as `accent`, `accent_strong`, `background`, and `font_family`
-without changing the shared template or JavaScript.
+The manifest declares the prompt field, the SVG drawing collection, the theme,
+and the three steps in pipeline order with readable names: **Configuration
+preparation**, **Topology generation**, and **Topology visualization**. Original
+task IDs and operation keys remain available under collapsed **Technical
+details**; identifiers used by the orchestrator are unchanged.
 
-Bootstrap 5.3.3 is vendored at
-`services/web_ui/static/vendor/bootstrap-5.3.3.min.css` and served from
-`/static/vendor/bootstrap-5.3.3.min.css`; the web UI does not require a CDN at
-runtime. Keep `ui.json` strict JSON because the service reads it with Python's
-standard JSON parser.
-
-If `ui.json` is missing, the service falls back to a generic prompt form and a
-JSON output viewer. The Denmark manifest customizes that generic UI for topology
-generation by declaring the prompt field, SVG drawing collection, selected
-signature field, and confirm/reject actions.
-
-Workflow status rows, progress messages, and result cards use readable step
-names: **Configuration preparation**, **Topology generation**, and **Topology
-visualization**. Original task IDs and operation keys remain available under
-collapsed **Technical details**; identifiers used by the orchestrator are unchanged.
+**Topology confirmation** is a decision gate on the visualization step. Once
+the drawings are rendered, the user confirms or rejects the recommended
+topology (`report.recommended_network`, not simply the first drawing). The
+decision is saved in `ui-decisions.json` in the workflow's data folder. The
+orchestrator does not pause for it yet; see `INTEGRATION_STATUS.md`.
 
 **5. Onboard to the portal:** upload `export.zip` at
 [portal.renewenergy.io](https://portal.renewenergy.io) → **Solutions → Import ZIP**.

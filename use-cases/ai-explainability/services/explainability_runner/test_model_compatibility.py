@@ -20,8 +20,45 @@ from ai_explainability.capabilities import EXCEL_MODELS, MODEL_ROUTES
 from analysis.tabular import _load_explainer_class as load_tabular
 from analysis.timeseries import _load_explainer_class as load_timeseries
 from analysis.timeseries.lstm_pytorch import LSTMForecaster
-from service import ExecuteRequest, UPLOAD_DIR, _inspect_configuration, _prepare_config, _run_explanation
-from services.config_assistant.service import _prepare_input
+from service import ExecuteRequest, UPLOAD_DIR, _inspect_configuration, _prepare_config, _resolve_input, _run_explanation
+from services.config_assistant.service import _configure_analysis, _prepare_input
+
+
+class InlineConfigurationTests(unittest.TestCase):
+    def test_assistant_output_resolves_without_file_access(self):
+        config = {
+            "analysis": "tabular", "model_type": "random_forest",
+            "model_path": "models/model.joblib", "dataset_path": "data/data.csv",
+            "feature_names": ["voltage", "current"], "subset_end": 3,
+        }
+        request = ExecuteRequest(
+            method="ConfigureAnalysis", workflow_id="workflow-inline", task_id="task-inline",
+            inputs=[{
+                "protocol": "inline", "format": "json",
+                "uri": base64.b64encode(json.dumps(config).encode()).decode(),
+            }],
+        )
+        manager = Mock()
+        _configure_analysis(request.task_id, request, manager)
+        manager.fail_task.assert_not_called()
+        reference = manager.complete_task.call_args.args[1]
+        self.assertEqual(reference["protocol"], "inline")
+        with patch("pathlib.Path.read_text", side_effect=AssertionError("No shared files")):
+            self.assertEqual(_resolve_input([reference]), config)
+
+    def test_legacy_inline_and_file_inputs_remain_supported(self):
+        config = {"analysis": "tabular", "model_type": "random_forest"}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "config.json"
+            for payload in (config, {"config": config}, {"config_json": json.dumps(config)}):
+                encoded = json.dumps(payload)
+                path.write_text(encoded, encoding="utf-8")
+                for reference in (
+                    {"protocol": "file", "uri": str(path)},
+                    {"protocol": "inline", "uri": base64.b64encode(encoded.encode()).decode()},
+                ):
+                    with self.subTest(payload=payload, protocol=reference["protocol"]):
+                        self.assertEqual(_resolve_input([reference]), config)
 
 
 class ModelCompatibilityTests(unittest.TestCase):
