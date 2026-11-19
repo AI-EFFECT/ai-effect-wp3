@@ -1,4 +1,10 @@
-"""Metadata-driven user-facing gateway for AI-EFFECT workflows."""
+"""Shared, manifest-driven user interface for AI-EFFECT workflows.
+
+One image serves every workflow. Each workflow mounts its use-case directory and
+describes itself in ``ui.json`` (inputs, steps, decision gates, theme, plugins);
+``connections.json`` and the ``export/`` files describe what is submitted to the
+orchestrator.
+"""
 
 from __future__ import annotations
 
@@ -7,8 +13,10 @@ import html
 import json
 import logging
 import os
+import re
 import time
 import uuid
+from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -22,25 +30,23 @@ from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
 ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://host.docker.internal:18000")
-CONFIG_ASSISTANT_URL = os.environ.get(
-    "CONFIG_ASSISTANT_URL", "http://explainability-config-assistant:8080/assistant/configure"
-)
-DATA_INSPECTION_URL = os.environ.get(
-    "DATA_INSPECTION_URL", "http://explainability-runner:8080/setup/inspect"
-)
-logger = logging.getLogger(__name__)
-USE_CASE_DIR = Path(os.environ.get("USE_CASE_DIR", "/workspace/use-cases/denmark-node"))
+# Optional workflow-specific services. A feature is disabled when its URL is unset.
+CONFIG_ASSISTANT_URL = os.environ.get("CONFIG_ASSISTANT_URL") or None
+DATA_INSPECTION_URL = os.environ.get("DATA_INSPECTION_URL") or None
+USE_CASE_DIR = Path(os.environ.get("USE_CASE_DIR", "/workspace/use-case"))
 EXPORT_PATH = Path(os.environ.get("EXPORT_PATH", str(USE_CASE_DIR / "export")))
 UI_MANIFEST_PATH = Path(os.environ.get("UI_MANIFEST_PATH", str(USE_CASE_DIR / "ui.json")))
+PLUGIN_DIR = Path(os.environ.get("UI_PLUGIN_DIR", str(USE_CASE_DIR / "ui")))
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 UPLOAD_DIR = DATA_DIR / "uploads"
 MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_BYTES", str(1024 * 1024 * 1024)))
 TEMPLATE_PATH = BASE_DIR / "templates" / "index.html"
+SAFE_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+PLUGIN_NAME = re.compile(r"^[A-Za-z0-9_-]+\.js$")
 
-app = FastAPI(title="AI-EFFECT Workflow UI", version="2.0.0")
+logger = logging.getLogger(__name__)
+app = FastAPI(title="AI-EFFECT Workflow UI", version="3.0.0")
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
-
-WORKFLOW_DECISIONS: dict[str, dict[str, Any]] = {}
 
 
 class SubmitRequest(BaseModel):
@@ -54,7 +60,12 @@ class AssistantRequest(BaseModel):
 class DecisionRequest(BaseModel):
     workflow_id: str
     action: str
+    step: str | None = None
     value: str | None = None
+
+
+class InspectUploadRequest(BaseModel):
+    path: str
 
 
 class WorkflowStatusResponse(BaseModel):
@@ -62,11 +73,8 @@ class WorkflowStatusResponse(BaseModel):
     status: str
     outputs: list[dict[str, Any]] | None = None
     tasks: list[dict[str, Any]] | None = None
+    decisions: dict[str, dict[str, Any]] | None = None
     error: str | None = None
-
-
-class InspectUploadRequest(BaseModel):
-    path: str
 
 
 def _read_json(path: Path, missing_message: str) -> dict[str, Any]:
@@ -89,7 +97,11 @@ def _read_connections() -> dict[str, Any]:
     path = USE_CASE_DIR / "connections.json"
     if not path.exists():
         return {}
-    return _read_json(path, "connections.json is not available for this workflow.")
+    try:
+        return _read_json(path, "connections.json is not available for this workflow.")
+    except json.JSONDecodeError:
+        logger.warning("Ignoring invalid %s", path)
+        return {}
 
 
 def _pipeline_metadata() -> dict[str, Any]:
@@ -119,25 +131,77 @@ def _default_manifest() -> dict[str, Any]:
                 "placeholder": "Describe what this workflow should run.",
             }
         ],
+        "steps": [],
         "output": {
-            "mode": "auto",
             "title": "Workflow output",
             "summary_fields": ["summary", "reason", "status", "message"],
             "image_collection_field": "drawings",
             "image_signature_field": "signature",
         },
         "actions": [],
+        "plugins": [],
         "pipeline": pipeline,
     }
 
 
 def _load_manifest() -> dict[str, Any]:
+    """Merge the workflow's ui.json over the defaults.
+
+    A missing or unreadable ui.json does not break the page, but the problem is
+    reported in ``manifest_warning`` so the UI can show it instead of silently
+    presenting the generic form.
+    """
     manifest = _default_manifest()
-    if UI_MANIFEST_PATH.exists():
-        configured = _read_json(UI_MANIFEST_PATH, "Workflow UI manifest could not be loaded.")
+    warning = None
+    try:
+        with UI_MANIFEST_PATH.open("r", encoding="utf-8") as fp:
+            configured = json.load(fp)
+        if not isinstance(configured, dict):
+            raise ValueError("the top level must be a JSON object")
+    except FileNotFoundError:
+        warning = f"No UI manifest found at {UI_MANIFEST_PATH}; showing the generic workflow form."
+    except (json.JSONDecodeError, ValueError) as exc:
+        warning = f"The UI manifest {UI_MANIFEST_PATH.name} is invalid ({exc}); showing the generic workflow form."
+    else:
         manifest.update(configured)
         manifest["pipeline"] = {**_pipeline_metadata(), **configured.get("pipeline", {})}
+
+    if warning:
+        logger.warning(warning)
+        manifest["manifest_warning"] = warning
+    manifest["features"] = {
+        "assistant": bool(CONFIG_ASSISTANT_URL) and manifest.get("assistant", {}).get("enabled") is True,
+        "upload_inspection": bool(DATA_INSPECTION_URL),
+    }
     return manifest
+
+
+def _manifest_plugins(manifest: dict[str, Any]) -> list[str]:
+    return [name for name in _as_list(manifest.get("plugins")) if isinstance(name, str) and PLUGIN_NAME.match(name)]
+
+
+def _upload_categories(manifest: dict[str, Any]) -> set[str]:
+    return {
+        field["upload_category"]
+        for field in _as_list(manifest.get("inputs"))
+        if isinstance(field, dict)
+        and field.get("type") == "file"
+        and isinstance(field.get("upload_category"), str)
+        and SAFE_NAME.match(field["upload_category"])
+    }
+
+
+def _gate_actions(manifest: dict[str, Any], step: str | None) -> set[str]:
+    """Actions allowed for a decision: a step's gate, or the workflow-level actions."""
+    if step is None:
+        actions = manifest.get("actions")
+    else:
+        found = next(
+            (item for item in _as_list(manifest.get("steps")) if isinstance(item, dict) and item.get("method") == step),
+            None,
+        )
+        actions = (found or {}).get("gate", {}).get("actions") if found else None
+    return {action.get("name") for action in _as_list(actions) if isinstance(action, dict)}
 
 
 def _poll_workflow(workflow_id: str, timeout_seconds: int = 2) -> dict[str, Any]:
@@ -201,6 +265,27 @@ def _load_outputs(task_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return outputs
 
 
+def _workflow_dir(workflow_id: str) -> Path:
+    workflow_directory = (DATA_DIR / workflow_id).resolve()
+    if DATA_DIR.resolve() not in workflow_directory.parents:
+        raise HTTPException(status_code=400, detail="Invalid workflow ID")
+    return workflow_directory
+
+
+def _decisions_path(workflow_id: str) -> Path:
+    return _workflow_dir(workflow_id) / "ui-decisions.json"
+
+
+def _read_decisions(workflow_id: str) -> dict[str, dict[str, Any]]:
+    try:
+        path = _decisions_path(workflow_id)
+        with path.open("r", encoding="utf-8") as fp:
+            decisions = json.load(fp)
+    except (FileNotFoundError, HTTPException, json.JSONDecodeError):
+        return {}
+    return decisions if isinstance(decisions, dict) else {}
+
+
 def _workflow_status_from_tasks(workflow_id: str, tasks: list[dict[str, Any]]) -> WorkflowStatusResponse:
     failure = next((task.get("error") for task in tasks if task.get("status") == "failed"), None)
     status = "running"
@@ -214,6 +299,7 @@ def _workflow_status_from_tasks(workflow_id: str, tasks: list[dict[str, Any]]) -
         status=status,
         outputs=_load_outputs(tasks),
         tasks=tasks,
+        decisions=_read_decisions(workflow_id),
         error=failure,
     )
 
@@ -246,12 +332,30 @@ def _safe_filename(filename: str | None) -> str:
     return normalized
 
 
+def _brand(manifest: dict[str, Any]) -> tuple[str, str]:
+    brand = manifest.get("brand") if isinstance(manifest.get("brand"), dict) else {}
+    name = str(brand.get("name") or manifest.get("title") or "AI-EFFECT Workflow")
+    mark = str(brand.get("mark") or name[:1] or "A")[:2]
+    return mark, name
+
+
 @app.get("/", response_class=HTMLResponse)
 def index() -> HTMLResponse:
     manifest = _load_manifest()
-    template = TEMPLATE_PATH.read_text(encoding="utf-8")
-    content = template.replace("{{ title }}", html.escape(str(manifest.get("title", "AI-EFFECT Workflow"))))
-    content = content.replace("{{ description }}", html.escape(str(manifest.get("description", ""))))
+    mark, name = _brand(manifest)
+    plugin_tags = "\n    ".join(
+        f'<script src="/plugins/{html.escape(plugin)}" defer></script>' for plugin in _manifest_plugins(manifest)
+    )
+    replacements = {
+        "{{ title }}": html.escape(str(manifest.get("title", "AI-EFFECT Workflow"))),
+        "{{ description }}": html.escape(str(manifest.get("description", ""))),
+        "{{ brand_mark }}": html.escape(mark),
+        "{{ brand_name }}": html.escape(name),
+        "{{ plugin_scripts }}": plugin_tags,
+    }
+    content = TEMPLATE_PATH.read_text(encoding="utf-8")
+    for placeholder, value in replacements.items():
+        content = content.replace(placeholder, value)
     return HTMLResponse(content=content)
 
 
@@ -265,14 +369,22 @@ def ui_config() -> dict[str, Any]:
     return _load_manifest()
 
 
+@app.get("/plugins/{name}")
+def plugin_script(name: str) -> FileResponse:
+    if name not in _manifest_plugins(_load_manifest()):
+        raise HTTPException(status_code=404, detail="Plugin is not declared in ui.json")
+    path = (PLUGIN_DIR / name).resolve()
+    if PLUGIN_DIR.resolve() not in path.parents or not path.is_file():
+        raise HTTPException(status_code=404, detail="Plugin file is not available")
+    return FileResponse(path, media_type="text/javascript")
+
+
 @app.post("/assistant/configure")
 def configure_analysis(payload: AssistantRequest) -> dict[str, Any]:
+    if not CONFIG_ASSISTANT_URL:
+        raise HTTPException(status_code=503, detail="No setup assistant is configured for this workflow.")
     try:
-        response = requests.post(
-            CONFIG_ASSISTANT_URL,
-            json=payload.model_dump(),
-            timeout=200,
-        )
+        response = requests.post(CONFIG_ASSISTANT_URL, json=payload.model_dump(), timeout=200)
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=503,
@@ -282,10 +394,7 @@ def configure_analysis(payload: AssistantRequest) -> dict[str, Any]:
     try:
         result = response.json()
     except requests.exceptions.JSONDecodeError as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="The setup assistant returned an invalid response.",
-        ) from exc
+        raise HTTPException(status_code=502, detail="The setup assistant returned an invalid response.") from exc
 
     if not response.ok:
         detail = result.get("detail") if isinstance(result, dict) else None
@@ -293,22 +402,19 @@ def configure_analysis(payload: AssistantRequest) -> dict[str, Any]:
             status_code=response.status_code if response.status_code < 500 else 502,
             detail=detail or "The setup assistant could not process this request.",
         )
-    if not isinstance(result, dict) or result.get("status") not in {
-        "ready",
-        "clarification",
-        "unsupported",
-    }:
+    if not isinstance(result, dict) or result.get("status") not in {"ready", "clarification", "unsupported"}:
         raise HTTPException(status_code=502, detail="The setup assistant returned an invalid response.")
     return result
 
 
 @app.post("/uploads")
-async def upload_file(
-    file: UploadFile = File(...),
-    category: str = Form(...),
-) -> dict[str, str | int]:
-    if category not in {"models", "data"}:
-        raise HTTPException(status_code=400, detail="Upload category must be 'models' or 'data'")
+async def upload_file(file: UploadFile = File(...), category: str = Form(...)) -> dict[str, str | int]:
+    allowed = _upload_categories(_load_manifest())
+    if category not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Upload category must be one of: {', '.join(sorted(allowed)) or 'none configured'}",
+        )
 
     filename = _safe_filename(file.filename)
     destination_dir = UPLOAD_DIR / uuid.uuid4().hex / category
@@ -340,6 +446,8 @@ def inspect_upload(payload: InspectUploadRequest) -> dict[str, Any]:
     path = Path(payload.path).resolve()
     if UPLOAD_DIR.resolve() not in path.parents or not path.is_file():
         raise HTTPException(status_code=422, detail="Inspection requires an uploaded data file.")
+    if not DATA_INSPECTION_URL:
+        raise HTTPException(status_code=503, detail="The file is uploaded, but this workflow has no file inspection.")
     try:
         response = requests.post(DATA_INSPECTION_URL, json={"path": str(path)}, timeout=30)
         result = response.json()
@@ -384,20 +492,33 @@ def submit_workflow(payload: SubmitRequest) -> dict[str, Any]:
 
 
 @app.post("/decision")
-def record_decision(payload: DecisionRequest) -> dict[str, str | None]:
+def record_decision(payload: DecisionRequest) -> dict[str, Any]:
+    """Record a human decision on a step's gate (or on the whole workflow).
+
+    Decisions are stored next to the workflow's data so they survive restarts.
+    The orchestrator does not pause for them yet; once it supports gates, this
+    is the place to forward the decision so the workflow can resume.
+    """
     if not payload.workflow_id:
         raise HTTPException(status_code=400, detail="workflow_id is required")
-
-    manifest = _load_manifest()
-    allowed_actions = {action.get("name") for action in _as_list(manifest.get("actions"))}
-    if allowed_actions and payload.action not in allowed_actions:
+    if payload.action not in _gate_actions(_load_manifest(), payload.step):
         raise HTTPException(status_code=400, detail="Unsupported workflow decision")
 
-    WORKFLOW_DECISIONS[payload.workflow_id] = {"action": payload.action, "value": payload.value}
+    decision = {
+        "action": payload.action,
+        "value": payload.value,
+        "recorded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path = _decisions_path(payload.workflow_id)
+    decisions = _read_decisions(payload.workflow_id)
+    decisions[payload.step or "workflow"] = decision
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(decisions, indent=2), encoding="utf-8")
     return {
         "status": payload.action,
-        "message": f"Decision recorded for workflow {payload.workflow_id}.",
+        "step": payload.step,
         "value": payload.value,
+        "message": f"Decision recorded for workflow {payload.workflow_id}.",
     }
 
 
@@ -435,7 +556,7 @@ def workflow_asset(workflow_id: str, signature: str) -> FileResponse:
             if not uri:
                 continue
             asset_path = Path(uri).resolve()
-            workflow_directory = (DATA_DIR / workflow_id).resolve()
+            workflow_directory = _workflow_dir(workflow_id)
             if workflow_directory in asset_path.parents and asset_path.is_file():
                 return FileResponse(asset_path, media_type=drawing.get("media_type") or "image/svg+xml")
 
@@ -444,7 +565,7 @@ def workflow_asset(workflow_id: str, signature: str) -> FileResponse:
 
 @app.get("/workflows/{workflow_id}/files/{file_path:path}")
 def workflow_file(workflow_id: str, file_path: str) -> FileResponse:
-    workflow_directory = (DATA_DIR / workflow_id).resolve()
+    workflow_directory = _workflow_dir(workflow_id)
     asset_path = (workflow_directory / file_path).resolve()
     if workflow_directory not in asset_path.parents or not asset_path.is_file():
         raise HTTPException(status_code=404, detail="Workflow file is not available")
@@ -453,8 +574,8 @@ def workflow_file(workflow_id: str, file_path: str) -> FileResponse:
 
 @app.get("/workflows/{workflow_id}/tasks/{task_id}/download")
 def workflow_download(workflow_id: str, task_id: str) -> StreamingResponse:
-    task_directory = (DATA_DIR / workflow_id / task_id).resolve()
-    workflow_directory = (DATA_DIR / workflow_id).resolve()
+    workflow_directory = _workflow_dir(workflow_id)
+    task_directory = (workflow_directory / task_id).resolve()
     if workflow_directory not in task_directory.parents or not task_directory.is_dir():
         raise HTTPException(status_code=404, detail="Workflow task is not available")
 

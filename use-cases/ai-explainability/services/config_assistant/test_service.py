@@ -1,16 +1,56 @@
 """Unit tests for supported explainability configuration intake."""
 
+import base64
+import json
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
+from common.concurrent import ExecuteRequest
 from services.config_assistant.service import (
     _AssistantError,
     _ask_assistant,
+    _configure_analysis,
     _normalize_config,
     _parse_assistant_response,
     _prepare_input,
     _validate_run_config,
 )
+
+
+class InlineOutputTests(unittest.TestCase):
+    def test_completed_configuration_is_self_contained_without_file_writes(self):
+        config = {
+            "analysis": "tabular",
+            "model_type": "random_forest",
+            "model_path": "models/model.joblib",
+            "dataset_path": "data/data.csv",
+            "feature_names": ["voltage", "current"],
+            "dataset_scope": "subset",
+            "subset_end": 3,
+        }
+        request = ExecuteRequest(
+            method="ConfigureAnalysis", workflow_id="workflow-inline", task_id="task-inline",
+            inputs=[{
+                "protocol": "inline", "format": "json",
+                "uri": base64.b64encode(json.dumps(config).encode()).decode(),
+            }],
+        )
+        manager = Mock()
+        with patch("pathlib.Path.mkdir") as mkdir, patch("pathlib.Path.write_text") as write:
+            _configure_analysis(request.task_id, request, manager)
+        manager.fail_task.assert_not_called()
+        manager.complete_task.assert_called_once()
+        task_id, reference = manager.complete_task.call_args.args
+        self.assertEqual(task_id, request.task_id)
+        self.assertEqual(reference["protocol"], "inline")
+        self.assertEqual(reference["format"], "json")
+        payload = json.loads(base64.b64decode(reference["uri"], validate=True).decode())
+        self.assertEqual(payload["status"], "ready")
+        self.assertIsInstance(payload["message"], str)
+        self.assertEqual(payload["config"], config)
+        self.assertEqual(json.loads(payload["config_json"]), config)
+        mkdir.assert_not_called()
+        write.assert_not_called()
 
 
 class NormalizeConfigTests(unittest.TestCase):

@@ -2,6 +2,10 @@
   "id": "denmark-node",
   "title": "Topology Generator Workflow",
   "description": "Submit an experiment request, follow the configured services, and review the generated SYSLAB topology output.",
+  "brand": {
+    "mark": "D",
+    "name": "Danish Node"
+  },
   "submit_label": "Generate topology",
   "poll_interval_ms": 2000,
   "theme": {
@@ -9,6 +13,32 @@
     "accent_strong": "#12594d",
     "background": "radial-gradient(circle at top left, rgba(29, 122, 104, 0.16), transparent 32rem), linear-gradient(135deg, #f7f4e8 0%, #eef6f2 58%, #f8fbf9 100%)"
   },
+  "steps": [
+    {
+      "method": "BuildRunConfig",
+      "title": "Configuration preparation",
+      "description": "Turns the request into supply and load settings."
+    },
+    {
+      "method": "GenerateTopology",
+      "title": "Topology generation",
+      "description": "Generates feasible networks and recommends a topology."
+    },
+    {
+      "method": "RenderTopologies",
+      "title": "Topology visualization",
+      "description": "Draws the generated networks for review.",
+      "gate": {
+        "label": "Topology confirmation",
+        "prompt": "Confirm the recommended topology before it is used for experiment mapping.",
+        "value_field": "report.recommended_network",
+        "actions": [
+          {"name": "accepted", "label": "Confirm topology", "style": "primary"},
+          {"name": "rejected", "label": "Reject topology", "style": "danger"}
+        ]
+      }
+    }
+  ],
   "inputs": [
     {
       "name": "prompt",
@@ -23,19 +53,7 @@
     "title": "Topology recommendation",
     "summary_fields": ["reason", "summary", "report"],
     "image_collection_field": "drawings",
-    "image_signature_field": "signature",
-    "selected_value_field": "signature"
+    "image_signature_field": "signature"
   },
-  "actions": [
-    {
-      "name": "accepted",
-      "label": "Confirm topology",
-      "style": "primary"
-    },
-    {
-      "name": "rejected",
-      "label": "Reject topology",
-      "style": "danger"
-    }
-  ]
+  "actions": []
 }

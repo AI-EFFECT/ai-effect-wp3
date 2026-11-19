@@ -26,9 +26,40 @@ analysis or model type is unclear, and does not configure requests outside those
 capabilities. Users can skip the assistant and enter a configuration directly.
 The assistant uses a local Ollama model; prompts are not sent to a hosted LLM.
 
-`web_ui` and Ollama are supporting services, not workflow nodes. The UI is
-deployed by `docker-compose.yml` to submit workflows and display their results.
+The web UI and Ollama are supporting services, not workflow nodes. The web UI
+is the shared workflow UI in [`workflow-ui/`](../../workflow-ui/README.md),
+configured by this use case's `ui.json` and the plugin in `ui/explainability.js`
+(feature-name suggestions, model-type guidance, and file checks per model type).
+`docker-compose.yml` builds it to submit workflows and display their results.
 Ollama provides the model used by the config assistant.
+
+### Independent service storage
+
+The assistant returns its small configuration as a base64-encoded JSON
+`DataReference` with `protocol: inline`, not a path to a local file.
+The orchestrator forwards that reference unchanged; the runner decodes it.
+The payload contains `status`, `message`, and `config_json` (the full normalized
+configuration), plus the existing nested `config` object for HTTP consumers.
+The runner continues to accept legacy file references and direct configurations.
+
+The assistant mounts its own `ai-explainability-assistant-data` volume. The
+runner keeps the existing `ai-explainability-data` volume, also mounted by the
+local web UI for uploads and result display. No assistant storage is mounted
+by the runner or web UI. Existing runner assets, uploads, and results are
+preserved; old assistant output files in the original volume are not deleted.
+New assistant executions do not write configuration files.
+
+Rebuild and recreate only the assistant after this update:
+
+```bash
+docker compose up -d --build --no-deps explainability-config-assistant
+```
+
+Independent volumes do not make model files portable. Configuration paths must
+identify assets or uploads available to the runner. Final reports still use
+runner-local file references; a remote platform needs a separate data-serving
+mechanism to download them. This change does not add public endpoints, alter
+runtime addresses, or resolve platform message-contract validation.
 
 ## Layout
 
@@ -41,9 +72,9 @@ ai-explainability/
 ├── services/
 │   ├── config_assistant/               # prompt-to-config intake and validation
 │   └── explainability_runner/          # adapter plus vendored toolbox source
-├── web_ui/                              # shared manifest-driven Bootstrap UI
+├── ui/explainability.js                 # plugin for the shared workflow UI
 ├── connections.json
-├── ui.json
+├── ui.json                             # manifest for the shared workflow UI
 ├── docker-compose.yml
 └── generate-export.sh
 ```
@@ -313,5 +344,5 @@ portal's **Services API Key** blank. Service authentication must be wired into
 the runner deployment before using that field.
 
 The export contains the `config_assistant` and `explainability_runner` workflow nodes and their service
-metadata. The local `web_ui` is a supporting service and is not part of the
+metadata. The local web UI is a supporting service and is not part of the
 portal export; portal runs are submitted through the portal itself.

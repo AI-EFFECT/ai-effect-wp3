@@ -88,10 +88,11 @@ services:
       timeout: 5s
       retries: 3
 
+  # Shared workflow UI (workflow-ui/ at the repository root), configured by
+  # this use case's ui.json.
   web-ui:
     build:
-      context: .
-      dockerfile: services/web_ui/Dockerfile
+      context: ../../workflow-ui
     container_name: dk-web-ui
     ports:
       - "18104:8080"
