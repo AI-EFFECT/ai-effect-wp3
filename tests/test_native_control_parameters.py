@@ -5,6 +5,7 @@ synthetic fixture limits, not Danish provider approval or scientific bounds.
 """
 from copy import deepcopy
 import importlib.util
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -45,6 +46,16 @@ CAPABILITY = {"capability_schema_version": "1.0", "transports": ["http-parameter
 def configuration(count=1):
     return {"contract_id": "test-contract", "contract_version": "1.0.0", "operation_identity": "urn:test:topology:source-runtime",
             "schema_version": "1.0", "instance_id": "test-instance", "parameters": {"allow_hx": True, "allow_bypass": True, "how_many": count}}
+
+
+def test_draft_export_requires_explicit_isolated_qualification(tmp_path,monkeypatch):
+    from common.configuration import load_contract
+    from fastapi import HTTPException
+    path=tmp_path/'qualification.json';path.write_text(json.dumps({**CAPABILITY,'qualification_only':True}))
+    monkeypatch.delenv('CONTROL_PARAMETER_QUALIFICATION_MODE',raising=False)
+    with pytest.raises(HTTPException):load_contract(str(path),'GenerateTopology',{'allow_hx':'boolean','allow_bypass':'boolean','how_many':'integer'})
+    monkeypatch.setenv('CONTROL_PARAMETER_QUALIFICATION_MODE','true')
+    assert load_contract(str(path),'GenerateTopology',{'allow_hx':'boolean','allow_bypass':'boolean','how_many':'integer'})['qualification_only'] is True
 
 
 @pytest.fixture
@@ -121,10 +132,41 @@ def test_renderer_uses_actual_generated_networks_and_retains_producer_settings(r
         response = client.post("/control/execute", json={"method": "RenderTopologies", "workflow_id": "wf-source-runtime-test",
             "task_id": "task_renderer", "inputs": [ref]})
         assert response.status_code == 200
-        _, output = completed(client, "task_renderer")
+        result_ref, output = completed(client, "task_renderer")
+        original = Path(result_ref['uri']).read_bytes()
+        files = {item['uri']: Path(item['uri']).read_bytes() for item in output['drawings']}
+        manifest = output['artifact_manifest']
+        assert manifest['kind'] == 'task-artifacts-v1' and manifest['schema_version'] == '1.0'
+        assert manifest['workflow_id'] == 'wf-source-runtime-test' and manifest['task_id'] == 'task_renderer'
+        for item in manifest['files']:
+            assert item['sha256'] == hashlib.sha256(files[item['uri']]).hexdigest()
+            assert item['bytes'] == len(files[item['uri']])
+        runtime.manager._tasks.clear()
+        replay = {'method': 'RenderTopologies', 'workflow_id': 'wf-source-runtime-test',
+                  'task_id': 'task_renderer', 'inputs': [ref]}
+        assert client.post('/control/execute', json=replay).status_code == 409
+        assert Path(result_ref['uri']).read_bytes() == original
+        assert all(Path(uri).read_bytes() == raw for uri, raw in files.items())
+        replay['workflow_id'] = '../outside'
+        assert client.post('/control/execute', json=replay).status_code == 422
     assert output["drawing_count"] == 3
     assert output["upstream_execution"] == producer["execution"]
     assert all("<svg" in Path(item["uri"]).read_text() for item in output["drawings"])
+
+
+def test_io_only_export_is_hash_checked_and_does_not_invent_renderer_settings(runtime,monkeypatch):
+    definition={'binding_transport':'whole-output-v1','inputs':[],'outputs':[]}
+    hashed=hashlib.sha256(json.dumps(definition,sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest()
+    export={'capability_schema_version':'1.0','transports':['whole-output-v1'],'operations':[{
+        'operation_name':'RenderTopologies','operation_identity':'urn:test:renderer','contract_version':'1.0.0',
+        'binding_transport':'whole-output-v1','io_definition':definition,'io_contract_sha256':hashed}]}
+    runtime.contract.write_text(json.dumps(export))
+    with TestClient(concurrent.create_app(renderer)) as client:
+        assert client.get('/control/capabilities').json()==export
+        configured={'method':'RenderTopologies','workflow_id':'wf-test','task_id':'task-test','configuration':configuration()}
+        assert client.post('/control/execute',json=configured).status_code==422
+        export['operations'][0]['io_contract_sha256']='0'*64;runtime.contract.write_text(json.dumps(export))
+        assert client.get('/control/capabilities').status_code==409
 
 
 @pytest.mark.parametrize("mutation", ["null", "version", "type", "limit", "unknown", "mixed", "path", "method"])

@@ -5,6 +5,8 @@ in their own algorithm. No service IDs or parameter defaults live here.
 """
 from copy import deepcopy
 import json
+import hashlib
+import os
 from pathlib import Path
 import re
 
@@ -60,17 +62,31 @@ def load_contract(path: str | None, operation_name: str, supported_types: dict[s
         if source.stat().st_size > 256_000:
             raise ValueError("Contract too large")
         value = json.loads(source.read_text(encoding="utf-8"))
+        if value.get('qualification_only') and os.environ.get('CONTROL_PARAMETER_QUALIFICATION_MODE') != 'true':
+            raise ValueError('Draft contracts require an explicitly isolated qualification environment')
         operations = value["operations"]
-        if (value["capability_schema_version"] != "1.0" or value["transports"] != ["http-parameters-v1"]
+        transports=value['transports']
+        if (value["capability_schema_version"] != "1.0" or not isinstance(transports,list) or not transports
+                or len(transports)!=len(set(transports)) or set(transports)-{'http-parameters-v1','whole-output-v1'}
                 or not isinstance(operations, list) or len(operations) != 1):
             raise ValueError("Unsupported capability export")
         operation = operations[0]
-        properties = operation["execution_parameters"]["properties"]
-        if (operation["operation_name"] != operation_name or not properties
+        properties = operation.get('execution_parameters',{}).get('properties',{})
+        if (operation["operation_name"] != operation_name or (supported_types and not properties)
                 or any(name not in supported_types or spec["type"] != supported_types[name] for name, spec in properties.items())):
             raise ValueError("The runtime does not implement these parameter mappings")
         from .parameter_contract import parameter_contract_digest
-        parameter_contract_digest(operation["execution_parameters"])
+        if properties:
+            if 'http-parameters-v1' not in transports:raise ValueError('Missing parameter transport')
+            parameter_contract_digest(operation["execution_parameters"])
+        elif supported_types or 'http-parameters-v1' in transports:raise ValueError('Unexpected parameter declaration')
+        if 'whole-output-v1' in transports:
+            definition=operation['io_definition']
+            hashed=hashlib.sha256(json.dumps(definition,sort_keys=True,separators=(',',':'),ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+            if (operation['binding_transport']!='whole-output-v1' or definition['binding_transport']!='whole-output-v1'
+                    or operation['io_contract_sha256']!=hashed or len(definition['inputs'])>1 or len(definition['outputs'])>1
+                    or definition.get('execution_parameters',{}).get('properties',{})!=properties):
+                raise ValueError('Installed I/O declaration differs')
         return deepcopy(value)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as exc:
         raise HTTPException(409, "Installed parameter contract is unavailable or incompatible with this operation") from exc

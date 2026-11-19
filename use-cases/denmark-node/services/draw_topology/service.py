@@ -8,11 +8,14 @@ import base64
 import json
 import logging
 import os
+import hashlib
+import re
 import sys
 from pathlib import Path
 from typing import Any
 
 from draw_network import NetworkDrawing
+from common.configuration import output_path, load_contract
 from handler import (
     DataReference,
     ExecuteRequest,
@@ -25,6 +28,11 @@ from handler import (
 
 logger = logging.getLogger(__name__)
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
+
+
+def configuration_capabilities():
+    # Published I/O only; no invented adjustable parameters for this renderer.
+    return load_contract(os.environ.get('SERVICE_PARAMETER_CONTRACT_FILE'),'RenderTopologies',{})
 
 
 def resolve_input(inputs: list[dict], default: Any = None) -> Any:
@@ -48,12 +56,20 @@ def publish_output(workflow_id: str, task_id: str, payload: dict) -> dict:
     output_dir = DATA_DIR / workflow_id
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{task_id}.json"
-    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    with output_path.open('x',encoding='utf-8') as stream:
+        json.dump(payload,stream,indent=2,allow_nan=False)
     return {"protocol": "file", "uri": str(output_path), "format": "json"}
 
 
 def execute_RenderTopologies(request: ExecuteRequest) -> ExecuteResponse:
     """Render SVG drawings for each generated network candidate."""
+    if any(not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}',value) for value in (request.workflow_id,request.task_id)):
+        from fastapi import HTTPException
+        raise HTTPException(422,'Safe workflow and task identities are required')
+    output_path(DATA_DIR,request.workflow_id,request.task_id)
+    if any((DATA_DIR/request.workflow_id).glob(request.task_id+'_network_*.svg')):
+        from fastapi import HTTPException
+        raise HTTPException(409,'Existing task artifacts must be preserved; reconcile before retry')
     task_manager.register_task(request.task_id, request)
     run_in_background(request.task_id, _render_topologies, request)
     return ExecuteResponse(status="running", task_id=request.task_id)
@@ -85,7 +101,7 @@ def _render_topologies(
         for index, network in enumerate(networks, 1):
             drawing = NetworkDrawing(network, index, len(networks)).render()
             drawing_path = data_dir / f"{task_id}_network_{index:03d}.svg"
-            drawing_path.write_text(drawing, encoding="utf-8")
+            with drawing_path.open('x',encoding='utf-8') as stream:stream.write(drawing)
             drawings.append(
                 {
                     "network_index": index,
@@ -115,6 +131,11 @@ def _render_topologies(
             },
             "generated_by": "draw_topology",
         }
+        payload['artifact_manifest']={'schema_version':'1.0','kind':'task-artifacts-v1',
+            'workflow_id':request.workflow_id,'task_id':request.task_id,'files':[
+                {**reference,'sha256':hashlib.sha256(Path(reference['uri']).read_bytes()).hexdigest(),
+                    'bytes':Path(reference['uri']).stat().st_size}
+                for reference in drawings]}
         if "execution" in topology_output:
             # Keep producer settings attached to the visual result as well.
             payload["upstream_execution"] = topology_output["execution"]
