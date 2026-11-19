@@ -97,9 +97,15 @@ def _render_topologies(
         data_dir = DATA_DIR / request.workflow_id
         data_dir.mkdir(parents=True, exist_ok=True)
 
+        # Observe the actual processing boundary, independently of producer metadata.
+        canonical = lambda value: json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+        input_digest = hashlib.sha256(canonical(topology_output)).hexdigest()
+        processed = []
         drawings = []
         for index, network in enumerate(networks, 1):
+            network_digest = hashlib.sha256(canonical(network)).hexdigest()
             drawing = NetworkDrawing(network, index, len(networks)).render()
+            processed.append(network_digest)  # Only a completed render counts.
             drawing_path = data_dir / f"{task_id}_network_{index:03d}.svg"
             with drawing_path.open('x',encoding='utf-8') as stream:stream.write(drawing)
             drawings.append(
@@ -136,6 +142,14 @@ def _render_topologies(
                 {**reference,'sha256':hashlib.sha256(Path(reference['uri']).read_bytes()).hexdigest(),
                     'bytes':Path(reference['uri']).stat().st_size}
                 for reference in drawings]}
+        payload['input_consumption'] = {
+            'schema_version': '1.0', 'kind': 'json-networks-render-v1',
+            'workflow_id': request.workflow_id, 'task_id': request.task_id,
+            'operation_name': request.method, 'input_sha256': input_digest,
+            'networks_sha256': hashlib.sha256(canonical(networks)).hexdigest(),
+            'processed_network_sha256': processed, 'processed_network_count': len(processed),
+            'instrumentation': 'Parsed input and each network passed to NetworkDrawing.render in this task; completed calls only; software evidence, not scientific approval',
+        }
         if "execution" in topology_output:
             # Keep producer settings attached to the visual result as well.
             payload["upstream_execution"] = topology_output["execution"]

@@ -150,6 +150,14 @@ def test_renderer_uses_actual_generated_networks_and_retains_producer_settings(r
         replay['workflow_id'] = '../outside'
         assert client.post('/control/execute', json=replay).status_code == 422
     assert output["drawing_count"] == 3
+    canonical = lambda value: json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+    observation = output['input_consumption']
+    assert observation['kind'] == 'json-networks-render-v1'
+    assert observation['workflow_id'] == 'wf-source-runtime-test' and observation['task_id'] == 'task_renderer'
+    assert observation['input_sha256'] == hashlib.sha256(canonical(producer)).hexdigest()
+    assert observation['networks_sha256'] == hashlib.sha256(canonical(producer['networks'])).hexdigest()
+    assert observation['processed_network_count'] == 3
+    assert observation['processed_network_sha256'] == [hashlib.sha256(canonical(n)).hexdigest() for n in producer['networks']]
     assert output["upstream_execution"] == producer["execution"]
     assert all("<svg" in Path(item["uri"]).read_text() for item in output["drawings"])
 

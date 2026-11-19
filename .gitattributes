@@ -1,1 +1,3 @@
 orchestrator/src/services/parameter_contract.py text eol=lf
+use-cases/**/common/parameter_contract.py text eol=lf
+use-cases/common/parameter_contract.py text eol=lf
