@@ -1,0 +1,13 @@
+# Server overrides: use together with docker-compose.yml
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+#
+# Redis is not published. The API is published on the server's loopback only,
+# for submit scripts and health checks; web UIs reach it over the
+# ai-effect-services network as ai-effect-orchestrator:8000.
+services:
+  redis:
+    ports: !reset []
+
+  api:
+    ports: !override
+      - "127.0.0.1:${ORCHESTRATOR_PORT:-8090}:8000"

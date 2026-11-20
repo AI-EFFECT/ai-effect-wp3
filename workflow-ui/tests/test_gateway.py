@@ -247,6 +247,17 @@ class WorkflowSubmissionTests(UseCaseTestCase):
         poll.assert_called_once_with("test-workflow")
         self.assertEqual(post.call_args.kwargs["json"]["inputs"][0]["protocol"], "inline")
 
+    @patch("app._poll_workflow", return_value={"tasks": []})
+    @patch("app.requests.post")
+    def test_orchestrator_api_key_is_sent_only_when_configured(self, post, poll):
+        post.return_value.status_code = 200
+        post.return_value.json.return_value = {"workflow_id": "wf"}
+        gateway.submit_workflow(gateway.SubmitRequest(inputs={}))
+        self.assertEqual(post.call_args.kwargs["headers"], {})
+        with patch.object(gateway, "ORCHESTRATOR_API_KEY", "secret"):
+            gateway.submit_workflow(gateway.SubmitRequest(inputs={}))
+        self.assertEqual(post.call_args.kwargs["headers"], {"Authorization": "Bearer secret"})
+
     @patch("app.requests.post")
     def test_orchestrator_rejection_is_preserved(self, post):
         post.return_value.status_code = 422

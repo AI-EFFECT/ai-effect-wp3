@@ -84,6 +84,7 @@ services:
     environment:
       - DATA_DIR=/data
       - ORCHESTRATOR_URL=http://ai-effect-orchestrator:8000
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - CONFIG_ASSISTANT_URL=http://explainability-config-assistant:8080/assistant/configure
       - DATA_INSPECTION_URL=http://explainability-runner:8080/setup/inspect
       - USE_CASE_DIR=/workspace/use-cases/ai-explainability
