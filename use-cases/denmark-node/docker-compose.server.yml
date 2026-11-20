@@ -1,0 +1,15 @@
+# Server overrides: use together with docker-compose.yml
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml up -d --build
+#
+# Only the web UI is published. The workflow services stay internal: the
+# orchestrator reaches them over the ai-effect-services network.
+services:
+  config-assistant:
+    ports: !reset []
+  topology-generator:
+    ports: !reset []
+  draw-topology:
+    ports: !reset []
+  web-ui:
+    ports: !override
+      - "${WEB_UI_PORT:-8081}:8080"

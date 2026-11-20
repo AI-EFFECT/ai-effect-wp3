@@ -29,7 +29,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE_DIR = Path(__file__).resolve().parent
-ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://host.docker.internal:18000")
+ORCHESTRATOR_URL = os.environ.get("ORCHESTRATOR_URL", "http://ai-effect-orchestrator:8000")
+# Must match the orchestrator's ORCHESTRATOR_API_KEY when that is set.
+ORCHESTRATOR_API_KEY = os.environ.get("ORCHESTRATOR_API_KEY") or None
 # Optional workflow-specific services. A feature is disabled when its URL is unset.
 CONFIG_ASSISTANT_URL = os.environ.get("CONFIG_ASSISTANT_URL") or None
 DATA_INSPECTION_URL = os.environ.get("DATA_INSPECTION_URL") or None
@@ -204,12 +206,18 @@ def _gate_actions(manifest: dict[str, Any], step: str | None) -> set[str]:
     return {action.get("name") for action in _as_list(actions) if isinstance(action, dict)}
 
 
+def _orchestrator_headers() -> dict[str, str]:
+    return {"Authorization": f"Bearer {ORCHESTRATOR_API_KEY}"} if ORCHESTRATOR_API_KEY else {}
+
+
 def _poll_workflow(workflow_id: str, timeout_seconds: int = 2) -> dict[str, Any]:
     deadline = time.time() + timeout_seconds
     last_response: dict[str, Any] = {"tasks": []}
     while time.time() < deadline:
         try:
-            response = requests.get(f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", timeout=10)
+            response = requests.get(
+                f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", headers=_orchestrator_headers(), timeout=10
+            )
             if response.status_code == 200:
                 last_response = response.json()
                 statuses = [task.get("status") for task in last_response.get("tasks", [])]
@@ -476,7 +484,9 @@ def submit_workflow(payload: SubmitRequest) -> dict[str, Any]:
     }
 
     try:
-        response = requests.post(f"{ORCHESTRATOR_URL}/workflows", json=request_body, timeout=20)
+        response = requests.post(
+            f"{ORCHESTRATOR_URL}/workflows", json=request_body, headers=_orchestrator_headers(), timeout=20
+        )
     except requests.RequestException as exc:
         logger.exception("Could not submit workflow to orchestrator at %s", ORCHESTRATOR_URL)
         raise HTTPException(
@@ -525,7 +535,9 @@ def record_decision(payload: DecisionRequest) -> dict[str, Any]:
 @app.get("/workflows/{workflow_id}")
 def workflow_status(workflow_id: str) -> WorkflowStatusResponse:
     try:
-        response = requests.get(f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", timeout=20)
+        response = requests.get(
+            f"{ORCHESTRATOR_URL}/workflows/{workflow_id}/tasks", headers=_orchestrator_headers(), timeout=20
+        )
     except requests.RequestException as exc:
         logger.exception("Could not retrieve workflow status from orchestrator at %s", ORCHESTRATOR_URL)
         raise HTTPException(

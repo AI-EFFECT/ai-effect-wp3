@@ -16,7 +16,7 @@ ENV HOST=0.0.0.0
 ENV PORT=8080
 ENV DATA_DIR=/data
 ENV USE_CASE_DIR=/workspace/use-case
-ENV ORCHESTRATOR_URL=http://host.docker.internal:18000
+ENV ORCHESTRATOR_URL=http://ai-effect-orchestrator:8000
 
 EXPOSE 8080
 
