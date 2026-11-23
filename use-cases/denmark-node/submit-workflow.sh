@@ -44,8 +44,15 @@ INPUTS_B64=$(echo -n "$INPUTS_JSON" | base64 -w 0)
 PAYLOAD=$(jq -n --argjson blueprint "$BLUEPRINT" --argjson dockerinfo "$DOCKERINFO" --arg inputs_b64 "$INPUTS_B64" \
   '{"blueprint": $blueprint, "dockerinfo": $dockerinfo, "inputs": [{"protocol": "inline", "uri": $inputs_b64, "format": "json"}]}')
 
+# Sent only when the orchestrator requires a key (ORCHESTRATOR_API_KEY).
+AUTH=()
+if [ -n "${ORCHESTRATOR_API_KEY:-}" ]; then
+  AUTH=(-H "Authorization: Bearer $ORCHESTRATOR_API_KEY")
+fi
+
 echo "Submitting Danish Node workflow to orchestrator at $API_URL..."
 RESPONSE=$(curl -s -X POST "$API_URL/workflows" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD")
 
@@ -71,7 +78,7 @@ echo "Waiting for topology generation and rendering..."
 # Prompt-based configs go through Ollama before topology generation and rendering.
 WAIT_ITERATIONS="${WAIT_ITERATIONS:-30}"
 for _ in $(seq 1 "$WAIT_ITERATIONS"); do
-  TASKS=$(curl --fail --silent --show-error "$API_URL/workflows/$WORKFLOW_ID/tasks")
+  TASKS=$(curl --fail --silent --show-error "${AUTH[@]}" "$API_URL/workflows/$WORKFLOW_ID/tasks")
   STATUS=$(echo "$TASKS" | jq -r '[.tasks[].status] | if any(. == "failed") then "failed" elif all(. == "completed") then "completed" else "running" end')
   if [ "$STATUS" = "completed" ] || [ "$STATUS" = "failed" ]; then
     break
