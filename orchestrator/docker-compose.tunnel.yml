@@ -1,0 +1,31 @@
+# Public HTTPS access to the orchestrator through an ngrok tunnel, so the
+# AI-EFFECT platform can reach it. Use on the server, on top of the server
+# overrides:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.server.yml \
+#                  -f docker-compose.tunnel.yml up -d
+#
+# Requires, in the environment:
+#   NGROK_AUTHTOKEN       from the ngrok dashboard
+#   NGROK_DOMAIN          your fixed ngrok domain, e.g. name.ngrok-free.dev
+#   ORCHESTRATOR_API_KEY  required here, because the API becomes public
+#
+# Only the orchestrator is exposed; it reaches the workflow services over the
+# ai-effect-services Docker network.
+services:
+  api:
+    environment:
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:?set ORCHESTRATOR_API_KEY before exposing the orchestrator}
+
+  worker:
+    environment:
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:?set ORCHESTRATOR_API_KEY before exposing the orchestrator}
+
+  tunnel:
+    image: ngrok/ngrok:latest
+    restart: unless-stopped
+    command: ["http", "api:8000", "--url", "${NGROK_DOMAIN:?set NGROK_DOMAIN}"]
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN:?set NGROK_AUTHTOKEN}
+    depends_on:
+      - api

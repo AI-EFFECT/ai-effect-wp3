@@ -148,7 +148,7 @@ PAYLOAD=$(jq -n \
 
 HEADERS=(-H "Content-Type: application/json")
 if [[ -n "${ORCHESTRATOR_API_KEY:-}" ]]; then
-  HEADERS+=(-H "X-API-Key: $ORCHESTRATOR_API_KEY")
+  HEADERS+=(-H "Authorization: Bearer $ORCHESTRATOR_API_KEY")
 fi
 
 echo "Submitting workflow to $API_URL..."
