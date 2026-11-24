@@ -14,6 +14,12 @@ class WorkflowSubmitRequest(BaseModel):
     blueprint: dict
     dockerinfo: dict
     inputs: list[dict] = []  # Initial DataReference objects for start nodes
+    # Optional per-node settings, forwarded as "parameters" in /control/execute.
+    # Keys: a container name (all its operations) or "container:operation".
+    parameters: dict[str, dict[str, Any]] = {}
+    # Optional initial inputs for specific start nodes (same keys as above).
+    # A node listed here receives these instead of "inputs".
+    node_inputs: dict[str, list[dict]] = {}
     services_api_key: str | None = None  # Optional bearer token sent to services
 
     @field_validator("blueprint")

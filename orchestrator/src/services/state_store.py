@@ -105,6 +105,7 @@ class RedisStateStore:
         task_id: str,
         node_key: str,
         input_refs: list[DataReference] | None = None,
+        parameters: dict | None = None,
     ) -> TaskState:
         """Create a new task in pending state."""
         if not workflow_id:
@@ -130,6 +131,7 @@ class RedisStateStore:
             created_at=now,
             updated_at=now,
             input_refs=input_refs or [],
+            parameters=parameters or {},
         )
 
         self._redis.set(key, state.model_dump_json())

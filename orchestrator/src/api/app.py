@@ -116,9 +116,23 @@ class OrchestratorAPI:
                         status_code=400, detail=f"Invalid inputs: {e}"
                     )
 
+            # Validate per-node settings and start-node inputs before creating state
+            try:
+                parsed_node_inputs = {
+                    key: [DataReference(**inp) for inp in refs]
+                    for key, refs in request.node_inputs.items()
+                }
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Invalid node_inputs: {e}")
+            try:
+                WorkflowEngine.resolve_node_parameters(graph, request.parameters)
+                node_inputs = WorkflowEngine.resolve_node_inputs(graph, parsed_node_inputs)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
             # Initialize and start workflow
-            self._engine.initialize_workflow(workflow_id, graph)
-            self._engine.start_workflow(workflow_id, initial_inputs)
+            self._engine.initialize_workflow(workflow_id, graph, request.parameters)
+            self._engine.start_workflow(workflow_id, initial_inputs, node_inputs)
 
             return WorkflowSubmitResponse(workflow_id=workflow_id, status="running")
 

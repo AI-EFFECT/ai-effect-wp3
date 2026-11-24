@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -47,4 +48,5 @@ class TaskState(BaseModel):
     updated_at: datetime
     input_refs: list[DataReference] = []
     output_refs: list[DataReference] = []
+    parameters: dict[str, Any] = {}
     error: str | None = None
