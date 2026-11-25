@@ -70,6 +70,7 @@ class Worker:
                 workflow_id=workflow_id,
                 task_id=task.task_id,
                 inputs=inputs,
+                parameters=task.parameters or None,
             )
 
             # Handle response

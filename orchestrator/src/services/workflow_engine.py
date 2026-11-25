@@ -44,12 +44,83 @@ class WorkflowEngine:
         hash_val = hashlib.sha256(node_key.encode()).hexdigest()[:8]
         return f"task_{hash_val}"
 
+    @staticmethod
+    def _match_node_keys(graph: ExecutionGraph, key: str) -> list[str]:
+        """Return graph node keys addressed by a node key or a container name."""
+        if key in graph.all_nodes:
+            return [key]
+        return [nk for nk in graph.all_nodes if nk.split(":", 1)[0] == key]
+
+    @classmethod
+    def resolve_node_parameters(
+        cls,
+        graph: ExecutionGraph,
+        parameters: dict[str, dict] | None,
+    ) -> dict[str, dict]:
+        """Map per-node parameters onto graph node keys.
+
+        A key may be a container name (applies to all of its operations) or a
+        node key "container:operation" (applies to that operation only).
+        Node-key values override container values. Unknown keys raise
+        ValueError so a mistyped node is reported instead of silently ignored.
+        """
+        resolved: dict[str, dict] = {}
+        if not parameters:
+            return resolved
+        container_level = [(k, v) for k, v in parameters.items() if ":" not in k]
+        node_level = [(k, v) for k, v in parameters.items() if ":" in k]
+        for key, values in container_level + node_level:
+            if not isinstance(values, dict):
+                raise ValueError(f"parameters for '{key}' must be an object")
+            targets = cls._match_node_keys(graph, key)
+            if not targets:
+                raise ValueError(f"parameters refer to unknown node '{key}'")
+            for node_key in targets:
+                resolved[node_key] = {**resolved.get(node_key, {}), **values}
+        return resolved
+
+    @classmethod
+    def resolve_node_inputs(
+        cls,
+        graph: ExecutionGraph,
+        node_inputs: dict[str, list[DataReference]] | None,
+    ) -> dict[str, list[DataReference]]:
+        """Map per-node initial inputs onto start node keys.
+
+        Only start nodes (no dependencies) receive initial inputs; addressing
+        any other node raises ValueError.
+        """
+        resolved: dict[str, list[DataReference]] = {}
+        if not node_inputs:
+            return resolved
+        start_keys = {nk for nk, gn in graph.all_nodes.items() if not gn.dependencies}
+        for key, refs in node_inputs.items():
+            targets = cls._match_node_keys(graph, key)
+            if not targets:
+                raise ValueError(f"node_inputs refer to unknown node '{key}'")
+            for node_key in targets:
+                if node_key not in start_keys:
+                    raise ValueError(
+                        f"node_inputs can only target start nodes; "
+                        f"'{node_key}' has upstream dependencies"
+                    )
+                resolved[node_key] = list(refs)
+        return resolved
+
     def initialize_workflow(
         self,
         workflow_id: str,
         graph: ExecutionGraph,
+        parameters: dict[str, dict] | None = None,
     ) -> WorkflowState:
-        """Initialize workflow with tasks from execution graph."""
+        """Initialize workflow with tasks from execution graph.
+
+        Args:
+            workflow_id: The workflow ID.
+            graph: Parsed execution graph.
+            parameters: Optional per-node settings (see resolve_node_parameters),
+                stored on each task and forwarded to the service on execute.
+        """
         if not workflow_id:
             raise ValueError("workflow_id is required")
         if graph is None:
@@ -57,6 +128,7 @@ class WorkflowEngine:
         if not graph.all_nodes:
             raise ValueError("graph must have at least one node")
 
+        node_parameters = self.resolve_node_parameters(graph, parameters)
         workflow = self._state_store.create_workflow(workflow_id)
 
         # Create tasks and track node_key -> task_id mapping
@@ -64,7 +136,9 @@ class WorkflowEngine:
         for node_key, graph_node in graph.all_nodes.items():
             task_id = self._task_id_from_node_key(node_key)
             node_to_task[node_key] = task_id
-            self._state_store.create_task(workflow_id, task_id, node_key)
+            self._state_store.create_task(
+                workflow_id, task_id, node_key, parameters=node_parameters.get(node_key)
+            )
             self._redis.hset(self._graph_key(workflow_id), node_key, task_id)
 
         # Set up dependency tracking
@@ -89,12 +163,16 @@ class WorkflowEngine:
         self,
         workflow_id: str,
         initial_inputs: list[DataReference] | None = None,
+        node_inputs: dict[str, list[DataReference]] | None = None,
     ) -> None:
         """Start workflow execution by enqueueing initial tasks.
 
         Args:
             workflow_id: The workflow ID.
             initial_inputs: Optional list of DataReferences to pass to start nodes.
+            node_inputs: Optional inputs for specific start nodes, keyed by node
+                key (see resolve_node_inputs). They replace initial_inputs for
+                that node.
         """
         if not workflow_id:
             raise ValueError("workflow_id is required")
@@ -102,16 +180,20 @@ class WorkflowEngine:
         self._state_store.update_workflow_status(workflow_id, WorkflowStatus.RUNNING)
 
         # Find tasks with no dependencies and enqueue them
-        task_ids = self._redis.hvals(self._graph_key(workflow_id))
-        for task_id in task_ids:
+        node_inputs = node_inputs or {}
+        graph_map = self._redis.hgetall(self._graph_key(workflow_id))
+        for node_key, task_id in graph_map.items():
+            if isinstance(node_key, bytes):
+                node_key = node_key.decode("utf-8")
             if isinstance(task_id, bytes):
                 task_id = task_id.decode("utf-8")
 
             deps_count = self._redis.scard(self._deps_key(workflow_id, task_id))
             if deps_count == 0:
                 # Set initial inputs for start nodes
-                if initial_inputs:
-                    self._append_input_refs(workflow_id, task_id, initial_inputs)
+                inputs_for_node = node_inputs.get(node_key, initial_inputs)
+                if inputs_for_node:
+                    self._append_input_refs(workflow_id, task_id, inputs_for_node)
                 self._task_queue.enqueue_task(workflow_id, task_id)
 
     def claim_task(self, workflow_id: str, timeout: int = 0) -> TaskState | None:
