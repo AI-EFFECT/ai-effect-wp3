@@ -3,7 +3,7 @@ syntax = "proto3";
 package config_assistant;
 
 service ConfigAssistant {
-  rpc ConfigureAnalysis(ConfigureAnalysisRequest) returns (ConfigureAnalysisResponse);
+  rpc ConfigureAnalysis(ConfigureAnalysisRequest) returns (AnalysisConfig);
 }
 
 message ConfigureAnalysisRequest {
@@ -11,7 +11,10 @@ message ConfigureAnalysisRequest {
   string config_json = 2;
 }
 
-message ConfigureAnalysisResponse {
+// Validated analysis configuration. Also the input of
+// ExplainabilityRunner.Explain, so the two services can be linked;
+// keep both definitions identical.
+message AnalysisConfig {
   string status = 1;
   string message = 2;
   string config_json = 3;

@@ -3,15 +3,18 @@ syntax = "proto3";
 package explainability_runner;
 
 service ExplainabilityRunner {
-  rpc Explain(ExplainRequest) returns (ExplainResponse);
+  rpc Explain(AnalysisConfig) returns (ExplainResponse);
 }
 
-message ExplainRequest {
-  string analysis = 1;
-  string model_type = 2;
-  string model_path = 3;
-  string dataset_path = 4;
-  repeated string feature_names = 5;
+// Output of ConfigAssistant.ConfigureAnalysis; keep both definitions
+// identical. config_json holds the run configuration as JSON text:
+// analysis, model_type, model_path, and dataset_path (tabular) or
+// background_data_path and test_data_path (LSTM), plus optional
+// feature_names.
+message AnalysisConfig {
+  string status = 1;
+  string message = 2;
+  string config_json = 3;
 }
 
 message ExplainResponse {

@@ -17,7 +17,7 @@
                     ],
                     "operation_signature": {
                         "operation_name": "ConfigureAnalysis",
-                        "output_message_name": "ConfigureAnalysisResponse",
+                        "output_message_name": "AnalysisConfig",
                         "input_message_name": "ConfigureAnalysisRequest",
                         "output_message_stream": false,
                         "input_message_stream": false
@@ -36,7 +36,7 @@
                     "operation_signature": {
                         "operation_name": "Explain",
                         "output_message_name": "ExplainResponse",
-                        "input_message_name": "ExplainRequest",
+                        "input_message_name": "AnalysisConfig",
                         "output_message_stream": false,
                         "input_message_stream": false
                     }
@@ -45,8 +45,8 @@
         }
     ],
     "name": "Ai-Explainability",
-    "pipeline_id": "b3450448-cec8-47ed-9a0d-a8014e1e1544",
-    "creation_date": "2026-11-04 14:53:45.919218",
+    "pipeline_id": "7123dfff-d35a-42bf-8dcb-17c76204eba8",
+    "creation_date": "2026-11-26 17:53:27.690479",
     "type": "pipeline-topology/v2",
     "version": "2.0"
 }
