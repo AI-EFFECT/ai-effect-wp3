@@ -22,7 +22,7 @@ OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:1.5b")
 OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT", "240"))
 
 
-# System prompt for the Ollama model, instructing it to convert free-text prompts into JSON run configurations. This is important for ensuring that the model's output adheres to the expected structure.
+# System prompt for the Ollama model, instructing it to convert free-text prompts into JSON run configurations. This is important for ensuring that the model's output adheres to the expected structure. 
 
 #TODO: Consider adding more detailed instructions or examples to the system prompt to improve the model's accuracy.
 #TODO: Verify with Zahra's original source code

@@ -6,7 +6,7 @@ COPY services/config_assistant/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Common can also use the shared WP3 common files
-COPY common/ ./common/
+COPY common/ ./common/ 
 COPY services/config_assistant/handler.py services/config_assistant/service.py services/config_assistant/ollama_client.py ./
 
 ENV HOST=0.0.0.0

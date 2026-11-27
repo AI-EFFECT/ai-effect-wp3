@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package synthetic_runner;
+
+// Synthetic Runner Service - stand-in for the experiment runner and simulator: made-up time series for every run of a design.
+// Not a simulation; removed from the workflow when the real runner is available.
+service SyntheticRunner {
+  rpc RunExperiments(RunExperimentsRequest) returns (RunExperimentsResponse);
+}
+
+message RunExperimentsRequest {
+  string input_uri = 1;  // Location of the experiment_design.json.
+}
+
+message RunExperimentsResponse {
+  bool success = 1;
+  string message = 2;
+  string output_uri = 3;  // Location of the experiment_runs.json (the manifest: study definition + the time series of every run, as files next to it).
+}

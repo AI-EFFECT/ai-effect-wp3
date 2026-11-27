@@ -1,0 +1,109 @@
+name: ai-explainability
+
+services:
+  explainability-config-assistant:
+    build:
+      context: .
+      dockerfile: services/config_assistant/Dockerfile
+    container_name: ai-explainability-config-assistant
+    ports:
+      - "18202:8080"
+    environment:
+      - DATA_DIR=/data
+      - OLLAMA_URL=http://ai-explainability-ollama:11434
+      - OLLAMA_MODEL=qwen2.5:1.5b
+    volumes:
+      - assistant-data:/data
+    networks:
+      - ai-effect-services
+    depends_on:
+      ollama-model:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request;urllib.request.urlopen('http://localhost:8080/health')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai-explainability-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ai-effect-services
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  ollama-model:
+    image: ollama/ollama:latest
+    container_name: ai-explainability-ollama-model
+    entrypoint: ["ollama", "pull", "qwen2.5:1.5b"]
+    environment:
+      - OLLAMA_HOST=http://ai-explainability-ollama:11434
+    volumes:
+      - ollama-models:/root/.ollama
+    networks:
+      - ai-effect-services
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: "no"
+
+  explainability-runner:
+    build:
+      context: .
+      dockerfile: services/explainability_runner/Dockerfile
+    container_name: ai-explainability-runner
+    ports:
+      - "18201:8080"
+    environment:
+      - DATA_DIR=/data
+      - ASSETS_DIR=/assets
+    volumes:
+      - explainability-data:/data
+      - ./assets:/assets:ro
+    networks:
+      - ai-effect-services
+    restart: unless-stopped
+
+  # Shared workflow UI (workflow-ui/ at the repository root), configured by
+  # this use case's ui.json and the plugin in ui/.
+  web-ui:
+    build:
+      context: ../../workflow-ui
+    container_name: ai-explainability-web-ui
+    ports:
+      - "18204:8080"
+    environment:
+      - DATA_DIR=/data
+      - ORCHESTRATOR_URL=http://ai-effect-orchestrator:8000
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
+      - CONFIG_ASSISTANT_URL=http://explainability-config-assistant:8080/assistant/configure
+      - DATA_INSPECTION_URL=http://explainability-runner:8080/setup/inspect
+      - USE_CASE_DIR=/workspace/use-cases/ai-explainability
+    volumes:
+      - explainability-data:/data
+      - .:/workspace/use-cases/ai-explainability:ro
+    networks:
+      - ai-effect-services
+    restart: unless-stopped
+
+volumes:
+  assistant-data:
+    name: ai-explainability-assistant-data
+  explainability-data:
+    name: ai-explainability-data
+  ollama-models:
+    name: ai-explainability-ollama-models
+
+networks:
+  ai-effect-services:
+    name: ai-effect-services
+    external: true

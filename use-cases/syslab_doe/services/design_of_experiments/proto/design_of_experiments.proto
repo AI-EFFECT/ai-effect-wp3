@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package design_of_experiments;
+
+// Design of Experiments Service - decides which runs the simulator / lab test should do.
+service DesignOfExperiments {
+  rpc DesignExperiment(DesignExperimentRequest) returns (DesignExperimentResponse);
+}
+
+message DesignExperimentRequest {
+  string input_uri = 1;  // Location of the JSON DoE request (factors, ranges, method).
+}
+
+message DesignExperimentResponse {
+  bool success = 1;
+  string message = 2;
+  string output_uri = 3;  // Location of the generated experiment_design.json.
+}

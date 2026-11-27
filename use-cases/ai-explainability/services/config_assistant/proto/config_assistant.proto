@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package config_assistant;
+
+service ConfigAssistant {
+  rpc ConfigureAnalysis(ConfigureAnalysisRequest) returns (ConfigureAnalysisResponse);
+}
+
+message ConfigureAnalysisRequest {
+  string prompt = 1;
+  string config_json = 2;
+}
+
+message ConfigureAnalysisResponse {
+  string status = 1;
+  string message = 2;
+  string config_json = 3;
+}

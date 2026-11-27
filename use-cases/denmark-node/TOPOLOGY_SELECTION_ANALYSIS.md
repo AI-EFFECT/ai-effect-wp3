@@ -1,10 +1,5 @@
 # Denmark Node: Topology Selection Flow Analysis
 
-> **Implementation note:** The confirmation flow below describes the intended
-> interaction. The current `/confirm` handler records a decision in memory after
-> the three-node workflow finishes; it does not block or resume WP3 execution.
-> See [integration status](INTEGRATION_STATUS.md).
-
 ## Overview
 
 The Denmark node implements a **hybrid semi-automatic topology selection system**:
@@ -61,7 +56,7 @@ The generator performs **exhaustive enumeration** of feasible network configurat
      - Graph connectivity between required switchboards
      - No dead-end branches (each pipe must be load-bearing)
      - Optional cycles allowed (configurable)
-
+   
 3. **Pipe Modes**
    - Each pipe can operate in two modes:
      - **Bypass mode**: Direct flow, buses share one hydraulic circuit
@@ -154,7 +149,7 @@ For each topology, the system reports:
    ```python
    # In topology_generator/service.py
    best_network = ranked_networks[0]  # Automatically selected
-
+   
    payload = {
        "recommended_network": best_network.get("signature"),
        "reason": "lowest pipe count and shortest practical path...",
@@ -162,7 +157,7 @@ For each topology, the system reports:
        ...
    }
    ```
-
+   
    The system **automatically selects** the topology with:
    - Minimum pipe count
    - Among those, shortest total pipe length
@@ -173,21 +168,21 @@ For each topology, the system reports:
    // web_ui/app.py - JavaScript frontend
    confirmBtn.onclick = async () => {
        const response = await fetch('/confirm', {
-           body: JSON.stringify({
-               workflow_id: workflowId,
-               selected_signature: selectedSignature,
-               accepted: true
+           body: JSON.stringify({ 
+               workflow_id: workflowId, 
+               selected_signature: selectedSignature, 
+               accepted: true 
            })
        });
    };
    ```
-
+   
    The web UI displays:
    - Recommended topology with full network details
    - SVG drawing of the recommended topology
    - Selection criteria and comparison to next-best option
    - Configuration assumptions used to generate it
-
+   
 3. **User Decision Options**
    - **Accept** - Topology confirmed, workflow continues downstream
    - **Reject** - User declines, workflow can be restarted with different prompt
@@ -312,10 +307,10 @@ let selectedSignature = network?.signature;  // e.g., "3f7a2c1b"
 
 confirmBtn.onclick = async () => {
     await fetch('/confirm', {
-        body: JSON.stringify({
-            workflow_id,
+        body: JSON.stringify({ 
+            workflow_id, 
             selected_signature: selectedSignature,  // Tracked
-            accepted: true
+            accepted: true 
         })
     });
 };
@@ -397,3 +392,4 @@ def execute_ValidateTopology(request: ExecuteRequest) -> ExecuteResponse:
 - **web_ui/app.py** - User confirmation UI (JavaScript frontend)
 - **draw_topology/service.py** - SVG rendering pipeline
 - **syslab_heat_topology.yaml** - Infrastructure definition (switchboards, terminals, pipes)
+

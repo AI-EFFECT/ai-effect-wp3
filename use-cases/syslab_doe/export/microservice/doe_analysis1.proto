@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package doe_analysis;
+
+// DoE Analysis Service - which factors drive which target metrics?
+service DoeAnalysis {
+  rpc AnalyzeResults(AnalyzeResultsRequest) returns (AnalyzeResultsResponse);
+}
+
+message AnalyzeResultsRequest {
+  string input_uri = 1;  // Location of the experiment_results.json (study definition + one result per run).
+}
+
+message AnalyzeResultsResponse {
+  bool success = 1;
+  string message = 2;
+  string output_uri = 3;  // Location of the analysis_report.json; the figures (PNG) and the summary CSV are next to it.
+}

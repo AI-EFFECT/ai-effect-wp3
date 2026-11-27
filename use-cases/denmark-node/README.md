@@ -1,4 +1,4 @@
-# Danish Node — Configuration and Topology (AI-EFFECT WP3)
+# Danish Node — Configuration and Topology Generation
 
 Reference for one of the Danish Node use case on the AI-EFFECT
 orchestration platform ([`AI-EFFECT/ai-effect-wp3`](https://github.com/AI-EFFECT/ai-effect-wp3)).
@@ -6,13 +6,18 @@ orchestration platform ([`AI-EFFECT/ai-effect-wp3`](https://github.com/AI-EFFECT
 This use case runs three orchestrated services. The configuration assistant
 turns user input into a normalized run configuration, the topology generator
 enumerates feasible SYSLAB networks, and the renderer creates SVGs for topology
-review. Ollama runs locally to parse free-text requests, while the web UI
-submits workflows and exposes the topology confirmation step. Services can also be run without web UI
-
-See [integration status](INTEGRATION_STATUS.md) for the demonstrated Solution Studio
-flow and the remaining confirmation and data-plane limitations.
+review. Ollama runs locally to parse free-text requests, while the shared web UI
+renders this workflow from `ui.json`, submits workflows, and exposes the topology
+confirmation step. Services can also be run without web UI
 
 ## Pipeline
+
+Run the UI regressions (shared UI, plus checks of this workflow's `ui.json`)
+from the repository root with:
+
+```bash
+node --test workflow-ui/tests/
+```
 
 ```
 config_assistant → topology_generator → draw_topology
@@ -25,7 +30,7 @@ config_assistant → topology_generator → draw_topology
 | `config_assistant` | DataSource | Validates and normalizes supplies, loads, and routing options | `service.py` |
 | `topology_generator` | MLModel | Enumerates feasible SYSLAB district-heating topologies | `dh_network_generator.py` |
 | `draw_topology` | DataSink | Renders topology candidates to SVG for review | `service.py` |
-| `web_ui` | User gateway | Submits prompts and records topology confirmation | `app.py` |
+| `web-ui` | User gateway | Submits prompts and records topology confirmation | shared [`workflow-ui/`](../../workflow-ui/README.md) |
 
 Node types (`DataSource` / `MLModel` / `DataSink`) are **auto-detected** by the
 export generator from `connections.json` — a node with no incoming connections is
@@ -42,9 +47,9 @@ denmark-node/
 ├── services/
 │   ├── config_assistant/       # BuildRunConfig
 │   ├── topology_generator/     # GenerateTopology
-│   ├── draw_topology/          # RenderTopologies and SVG renderer
-│   └── web_ui/                 # prompt submission and topology confirmation
+│   └── draw_topology/          # RenderTopologies and SVG renderer
 ├── connections.json            # service_mapping + wiring (input to the generator)
+├── ui.json                     # manifest for the shared workflow UI (workflow-ui/)
 ├── docker-compose.yml
 ├── data/                       # bind-mount point for input datasets
 ├── output/                     # final reports land here
@@ -114,6 +119,26 @@ curl -s http://localhost:18000/workflows/<workflow_id>/tasks | jq .
 ```
 
 The topology output is stored as a DataReference on the shared volume.
+
+## Dynamic web UI
+
+The `web-ui` service is the shared workflow UI in
+[`workflow-ui/`](../../workflow-ui/README.md), also used by other workflows.
+`docker-compose.yml` builds it and mounts this directory; `ui.json` makes it the
+Denmark topology UI. Keep `ui.json` strict JSON: if it is missing or invalid,
+the page shows a warning and a generic form.
+
+The manifest declares the prompt field, the SVG drawing collection, the theme,
+and the three steps in pipeline order with readable names: **Configuration
+preparation**, **Topology generation**, and **Topology visualization**. Original
+task IDs and operation keys remain available under collapsed **Technical
+details**; identifiers used by the orchestrator are unchanged.
+
+**Topology confirmation** is a decision gate on the visualization step. Once
+the drawings are rendered, the user confirms or rejects the recommended
+topology (`report.recommended_network`, not simply the first drawing). The
+decision is saved in `ui-decisions.json` in the workflow's data folder. The
+orchestrator does not pause for it yet; see `INTEGRATION_STATUS.md`.
 
 **5. Onboard to the portal:** upload `export.zip` at
 [portal.renewenergy.io](https://portal.renewenergy.io) → **Solutions → Import ZIP**.

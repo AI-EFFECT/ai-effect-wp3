@@ -1,0 +1,94 @@
+{
+  "id": "ai-explainability",
+  "title": "AI Explainability Analysis",
+  "description": "Describe a supported explainability analysis or configure it directly, then review the generated results.",
+  "brand": {
+    "mark": "X",
+    "name": "AI Explainability"
+  },
+  "assistant": {
+    "enabled": true,
+    "label": "What would you like explained?",
+    "placeholder": "For example: Explain my random forest predictions using a tabular dataset.",
+    "hint": "Model type means the algorithm used to train your model: Random Forest, XGBoost, or a feedforward neural network (MLP) for tabular data; LSTM or ARIMA for time-series data. For example, reply \"LSTM time-series\". If unsure, reply \"I don't know\" and check the training code or ask whoever supplied the model. A file extension alone does not identify the model type.",
+    "hint_when_missing": "model_type"
+  },
+  "plugins": ["explainability.js"],
+  "submit_label": "Run analysis",
+  "poll_interval_ms": 3000,
+  "theme": {
+    "accent": "#176a83",
+    "accent_strong": "#0f4f63",
+    "background": "linear-gradient(135deg, #edf7f8 0%, #f8f7ee 55%, #ffffff 100%)"
+  },
+  "steps": [
+    {
+      "method": "ConfigureAnalysis",
+      "title": "Configuration validation",
+      "description": "Checks and prepares the analysis settings."
+    },
+    {
+      "method": "Explain",
+      "title": "Explainability analysis",
+      "description": "Generates explanations, plots, and downloadable reports."
+    }
+  ],
+  "inputs": [
+    {
+      "name": "model_upload",
+      "label": "Model file",
+      "type": "file",
+      "config_field": "model_path",
+      "upload_category": "models",
+      "accept": ".pkl,.pickle,.joblib,.pt,.pth,.bin",
+      "help": "Uploads on selection and updates model_path. Model type must be specified; a filename alone cannot identify it."
+    },
+    {
+      "name": "dataset_upload",
+      "label": "Dataset file",
+      "type": "file",
+      "config_field": "dataset_path",
+      "upload_category": "data",
+      "inspect": true,
+      "accept": ".csv,.tsv,.parquet,.pt,.pth,.bin",
+      "help": "Uploads on selection and updates dataset_path. CSV/TSV column names are suggested as features; review target and ID columns."
+    },
+    {
+      "name": "background_data_upload",
+      "label": "Background data",
+      "show_when": {"config_key": "model_type", "values": ["lstm", "feedforward", "mlp", "neural_net"]},
+      "type": "file",
+      "config_field": "background_data_path",
+      "upload_category": "data",
+      "inspect": true,
+      "accept": ".csv,.tsv,.parquet,.pt,.pth,.bin",
+      "help": "Required for LSTM: a tensor of (samples, time steps, features). Optional for feedforward models: a table of baseline samples; otherwise the explainer selects them from the dataset."
+    },
+    {
+      "name": "test_data_upload",
+      "label": "LSTM test data",
+      "show_when": {"config_key": "model_type", "values": ["lstm"]},
+      "type": "file",
+      "config_field": "test_data_path",
+      "upload_category": "data",
+      "inspect": true,
+      "accept": ".pt,.pth,.bin",
+      "help": "Uploads on selection. LSTM tensor shape: (samples, look_back, features). Positional feature labels can be detected."
+    },
+    {
+      "name": "config_json",
+      "label": "Analysis configuration",
+      "type": "textarea",
+      "required": true,
+      "help": "Paths and feature suggestions update on file selection. Review model_type and features; your explicit feature names are preserved. Assets-relative paths also work.",
+      "default": "{}"
+    }
+  ],
+  "output": {
+    "title": "Analysis results",
+    "summary_fields": ["summary", "status", "message"],
+    "image_collection_field": "drawings",
+    "image_signature_field": "signature"
+  },
+  "actions": []
+}

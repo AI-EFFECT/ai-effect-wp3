@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package kpi_calculator;
+
+// KPI Calculator Service - the target metrics of every run, computed from the run's logged time series.
+service KpiCalculator {
+  rpc CalculateKpis(CalculateKpisRequest) returns (CalculateKpisResponse);
+}
+
+message CalculateKpisRequest {
+  string input_uri = 1;  // Location of the experiment_runs.json (the manifest linking each run_id to its time series).
+}
+
+message CalculateKpisResponse {
+  bool success = 1;
+  string message = 2;
+  string output_uri = 3;  // Location of the experiment_results.json (study definition + the target metrics of every run).
+}

@@ -1,0 +1,54 @@
+# The KPIs a study can ask for in target_metrics. Each is one statistic of one logged signal over a run.
+#
+#   signal       column of the run's timeseries.csv
+#   statistic    min, max, mean, std (population), first, last, or integral (trapezoid rule over time_s, so signal unit x s)
+#   divide_by    optional, the statistic is divided by it (3600 turns kW x s into kWh)
+#   unit         of the result
+#   description  in words
+#
+# PLACEHOLDER: the signal names are those of the synthetic runner (services/synthetic_runner). The real
+# simulator and the lab test log their own columns, and the KPI definitions that matter for the use case
+# are not decided yet; when they are, point these entries at the real columns and add the real KPIs.
+
+min_return_temp_c:
+  signal: return_temp_c
+  statistic: min
+  unit: degC
+  description: Lowest return temperature over the run
+
+mean_return_temp_c:
+  signal: return_temp_c
+  statistic: mean
+  unit: degC
+  description: Mean return temperature over the run
+
+final_return_temp_c:
+  signal: return_temp_c
+  statistic: last
+  unit: degC
+  description: Return temperature at the end of the run
+
+heat_loss_kwh:
+  signal: heat_loss_kw
+  statistic: integral
+  divide_by: 3600
+  unit: kWh
+  description: Heat lost over the run
+
+peak_heat_loss_kw:
+  signal: heat_loss_kw
+  statistic: max
+  unit: kW
+  description: Highest heat loss rate over the run
+
+max_mass_flow_kg_s:
+  signal: mass_flow_kg_s
+  statistic: max
+  unit: kg/s
+  description: Highest mass flow over the run
+
+mean_mass_flow_kg_s:
+  signal: mass_flow_kg_s
+  statistic: mean
+  unit: kg/s
+  description: Mean mass flow over the run

@@ -1,0 +1,55 @@
+services:
+  design-of-experiments:
+    build:
+      context: ../
+      dockerfile: syslab_doe/services/design_of_experiments/Dockerfile
+    ports:
+      - "18301:8080"
+    volumes:
+      - ./output:/app/output
+      - ./requests:/app/requests:ro
+    environment:
+      - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
+      - DOE_DEFAULT_REQUEST=${DOE_DEFAULT_REQUEST:-requests/oat.yaml}
+
+  synthetic-runner:
+    build:
+      context: ../
+      dockerfile: syslab_doe/services/synthetic_runner/Dockerfile
+    ports:
+      - "18302:8080"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
+
+  kpi-calculator:
+    build:
+      context: ../
+      dockerfile: syslab_doe/services/kpi_calculator/Dockerfile
+    ports:
+      - "18304:8080"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
+
+  doe-analysis:
+    build:
+      context: ../
+      dockerfile: syslab_doe/services/doe_analysis/Dockerfile
+    ports:
+      - "18303:8080"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - PORT=8080
+      - SERVICE_API_KEY=${SERVICE_API_KEY:-}
+
+networks:
+  default:
+    name: ai-effect-services
+    external: true

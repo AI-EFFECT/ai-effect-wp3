@@ -88,16 +88,18 @@ services:
       timeout: 5s
       retries: 3
 
+  # Shared workflow UI (workflow-ui/ at the repository root), configured by
+  # this use case's ui.json.
   web-ui:
     build:
-      context: .
-      dockerfile: services/web_ui/Dockerfile
+      context: ../../workflow-ui
     container_name: dk-web-ui
     ports:
       - "18104:8080"
     environment:
       - DATA_DIR=/data
-      - ORCHESTRATOR_URL=http://host.docker.internal:18000
+      - ORCHESTRATOR_URL=http://ai-effect-orchestrator:8000
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY:-}
       - USE_CASE_DIR=/workspace/use-cases/denmark-node
     volumes:
       - node-data:/data

@@ -10,3 +10,6 @@ __pycache__/
 # Data directory (generated files), but keep the input sample
 data/*
 !data/raw_energy.csv
+
+# Key
+.env

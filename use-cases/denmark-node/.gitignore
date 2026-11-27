@@ -8,4 +8,5 @@ export/
 export.zip
 output/
 # decide based on your use case during prototyping
-data/*
+data/* 
+
